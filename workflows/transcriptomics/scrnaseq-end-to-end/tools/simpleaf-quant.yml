@@ -5,56 +5,70 @@ name: Simpleaf Quant
 description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry
 container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
 configfiles:
-- filename: reads.json
+- filename: params.json
   content: |
-    $(JSON.stringify(inputs.reads))
-shell_command: |
-  set -euo pipefail
+    {
+      "reads": $(JSON.stringify(inputs.reads)),
+      "index_archive": $(JSON.stringify(inputs.index_archive.path)),
+      "t2g": $(JSON.stringify(inputs.t2g.path)),
+      "whitelist": $(JSON.stringify(inputs.whitelist.path)),
+      "chemistry": $(JSON.stringify(inputs.chemistry)),
+      "resolution": $(JSON.stringify(inputs.resolution))
+    }
+- filename: run_quant.sh
+  content: |
+    set -euo pipefail
 
-  # Extract forward and reverse read paths from reads.json without python dependency
-  READS=($(grep -o '/[^" ]*' reads.json | sort -u))
-  if [ ${#READS[@]} -lt 2 ]; then
-    echo "Error: Could not extract at least 2 read paths from reads.json" >&2
-    cat reads.json >&2
-    exit 1
-  fi
-  FWD="${READS[0]}"
-  REV="${READS[1]}"
-  echo "Found forward read: $FWD"
-  echo "Found reverse read: $REV"
+    INDEX_ARCHIVE=$(sed -n 's/.*"index_archive"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' params.json)
+    T2G=$(sed -n 's/.*"t2g"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' params.json)
+    WHITELIST=$(sed -n 's/.*"whitelist"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' params.json)
+    CHEMISTRY=$(sed -n 's/.*"chemistry"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' params.json)
+    RESOLUTION=$(sed -n 's/.*"resolution"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' params.json)
+    [ -z "$CHEMISTRY" ] && CHEMISTRY="10xv2"
+    [ -z "$RESOLUTION" ] && RESOLUTION="cr-like"
 
-  export ALEVIN_FRY_HOME="$(pwd)/af_home"
-  mkdir -p "$ALEVIN_FRY_HOME"
-  simpleaf set-paths
+    READS=($(grep -o '/[^"]*' params.json | grep -v "$INDEX_ARCHIVE" | grep -v "$T2G" | grep -v "$WHITELIST" | sort -u))
+    if [ ${#READS[@]} -lt 2 ]; then
+      echo "Error: Could not extract at least 2 read paths from params.json" >&2
+      cat params.json >&2
+      exit 1
+    fi
+    FWD="${READS[0]}"
+    REV="${READS[1]}"
+    echo "Found forward read: $FWD"
+    echo "Found reverse read: $REV"
 
-  mkdir -p af_index
-  tar -xzf '$(inputs.index_archive.path)' -C af_index
+    export ALEVIN_FRY_HOME="$(pwd)/af_home"
+    mkdir -p "$ALEVIN_FRY_HOME"
+    simpleaf set-paths
 
-  SLOTS="${GALAXY_SLOTS:-4}"
-  CHEMISTRY="$(inputs.chemistry)"
-  RESOLUTION="$(inputs.resolution)"
+    mkdir -p af_index
+    tar -xzf "$INDEX_ARCHIVE" -C af_index
 
-  mkdir -p af_quant_out
-  simpleaf quant \
-    --threads "$SLOTS" \
-    --index af_index/index \
-    --t2g-map '$(inputs.t2g.path)' \
-    --chemistry "$CHEMISTRY" \
-    --reads1 "$FWD" \
-    --reads2 "$REV" \
-    --unfiltered-pl '$(inputs.whitelist.path)' \
-    --resolution "$RESOLUTION" \
-    --anndata-out \
-    --output af_quant_out
+    SLOTS="${GALAXY_SLOTS:-4}"
 
-  mkdir -p out_quants
-  find af_quant_out -name "*.h5ad" -exec cp {} out_quants/quants.h5ad \;
-  if [ ! -f out_quants/quants.h5ad ]; then
-    echo "Error: quants.h5ad was not produced by simpleaf quant" >&2
-    ls -laR af_quant_out >&2
-    exit 1
-  fi
-  echo "Simpleaf quantification completed successfully."
+    mkdir -p af_quant_out
+    simpleaf quant \
+      --threads "$SLOTS" \
+      --index af_index/index \
+      --t2g-map "$T2G" \
+      --chemistry "$CHEMISTRY" \
+      --reads1 "$FWD" \
+      --reads2 "$REV" \
+      --unfiltered-pl "$WHITELIST" \
+      --resolution "$RESOLUTION" \
+      --anndata-out \
+      --output af_quant_out
+
+    mkdir -p out_quants
+    find af_quant_out -name "*.h5ad" -exec cp {} out_quants/quants.h5ad \;
+    if [ ! -f out_quants/quants.h5ad ]; then
+      echo "Error: quants.h5ad was not produced by simpleaf quant" >&2
+      ls -laR af_quant_out >&2
+      exit 1
+    fi
+    echo "Simpleaf quantification completed successfully."
+shell_command: bash run_quant.sh
 inputs:
 - name: reads
   type: data_collection

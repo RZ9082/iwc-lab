@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "fa7366b3-ef8c-465a-a4a9-9c289df0b84c",
+  "uuid": "65307062-4b08-4c0f-b30b-d5e9fadf75cd",
   "creator": [
     {
       "name": "nf-core",
@@ -380,11 +380,15 @@
         "container": "quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0",
         "configfiles": [
           {
-            "filename": "reads.json",
-            "content": "$(JSON.stringify(inputs.reads))\n"
+            "filename": "params.json",
+            "content": "{\n  \"reads\": $(JSON.stringify(inputs.reads)),\n  \"index_archive\": $(JSON.stringify(inputs.index_archive.path)),\n  \"t2g\": $(JSON.stringify(inputs.t2g.path)),\n  \"whitelist\": $(JSON.stringify(inputs.whitelist.path)),\n  \"chemistry\": $(JSON.stringify(inputs.chemistry)),\n  \"resolution\": $(JSON.stringify(inputs.resolution))\n}\n"
+          },
+          {
+            "filename": "run_quant.sh",
+            "content": "set -euo pipefail\n\nINDEX_ARCHIVE=$(sed -n 's/.*\"index_archive\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' params.json)\nT2G=$(sed -n 's/.*\"t2g\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' params.json)\nWHITELIST=$(sed -n 's/.*\"whitelist\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' params.json)\nCHEMISTRY=$(sed -n 's/.*\"chemistry\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' params.json)\nRESOLUTION=$(sed -n 's/.*\"resolution\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' params.json)\n[ -z \"$CHEMISTRY\" ] && CHEMISTRY=\"10xv2\"\n[ -z \"$RESOLUTION\" ] && RESOLUTION=\"cr-like\"\n\nREADS=($(grep -o '/[^\"]*' params.json | grep -v \"$INDEX_ARCHIVE\" | grep -v \"$T2G\" | grep -v \"$WHITELIST\" | sort -u))\nif [ ${#READS[@]} -lt 2 ]; then\n  echo \"Error: Could not extract at least 2 read paths from params.json\" >&2\n  cat params.json >&2\n  exit 1\nfi\nFWD=\"${READS[0]}\"\nREV=\"${READS[1]}\"\necho \"Found forward read: $FWD\"\necho \"Found reverse read: $REV\"\n\nexport ALEVIN_FRY_HOME=\"$(pwd)/af_home\"\nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar -xzf \"$INDEX_ARCHIVE\" -C af_index\n\nSLOTS=\"${GALAXY_SLOTS:-4}\"\n\nmkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"$SLOTS\" \\\n  --index af_index/index \\\n  --t2g-map \"$T2G\" \\\n  --chemistry \"$CHEMISTRY\" \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\" \\\n  --unfiltered-pl \"$WHITELIST\" \\\n  --resolution \"$RESOLUTION\" \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\nif [ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad was not produced by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit 1\nfi\necho \"Simpleaf quantification completed successfully.\"\n"
           }
         ],
-        "shell_command": "set -euo pipefail\n\n# Extract forward and reverse read paths from reads.json without python dependency\nREADS=($(grep -o '/[^\" ]*' reads.json | sort -u))\nif [ ${#READS[@]} -lt 2 ]; then\n  echo \"Error: Could not extract at least 2 read paths from reads.json\" >&2\n  cat reads.json >&2\n  exit 1\nfi\nFWD=\"${READS[0]}\"\nREV=\"${READS[1]}\"\necho \"Found forward read: $FWD\"\necho \"Found reverse read: $REV\"\n\nexport ALEVIN_FRY_HOME=\"$(pwd)/af_home\"\nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar -xzf '$(inputs.index_archive.path)' -C af_index\n\nSLOTS=\"${GALAXY_SLOTS:-4}\"\nCHEMISTRY=\"$(inputs.chemistry)\"\nRESOLUTION=\"$(inputs.resolution)\"\n\nmkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"$SLOTS\" \\\n  --index af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\n  --chemistry \"$CHEMISTRY\" \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\" \\\n  --unfiltered-pl '$(inputs.whitelist.path)' \\\n  --resolution \"$RESOLUTION\" \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\nif [ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad was not produced by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit 1\nfi\necho \"Simpleaf quantification completed successfully.\"\n",
+        "shell_command": "bash run_quant.sh",
         "inputs": [
           {
             "name": "reads",
