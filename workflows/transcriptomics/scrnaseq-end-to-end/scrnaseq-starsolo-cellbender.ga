@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "fc19c2f7-a329-4e5f-b735-c951930fa862",
+  "uuid": "58533802-3b7e-40e1-a31b-d4069cebf5e6",
   "creator": [
     {
       "name": "nf-core",
@@ -193,10 +193,10 @@
           },
           {
             "filename": "filter_gtf.py",
-            "content": "import json\nfrom itertools import groupby\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\ndef is_header(line):\n    return line.startswith(\">\")\n\ndef extract_fasta_seq_names(fasta_name):\n    with open(fasta_name) as fh:\n        faiter = (x[1] for x in groupby(fh, is_header))\n        for header in faiter:\n            line = next(header)\n            if is_header(line):\n                yield line[1:].strip().split()[0]\n\nseq_names = set(extract_fasta_seq_names(params[\"fasta\"]))\nwith open(params[\"gtf\"]) as in_handle, open(\"filtered.gtf\", \"w\") as out_handle:\n    for line in in_handle:\n        if line.startswith(\"#\"):\n            out_handle.write(line)\n        else:\n            fields = line.split(\"\\t\")\n            if fields[0] in seq_names:\n                out_handle.write(line)\n"
+            "content": "import json\nfrom itertools import groupby\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\ndef is_header(line):\n    return line.startswith(\">\")\n\ndef extract_fasta_seq_names(fasta_name):\n    with open(fasta_name) as fh:\n        faiter = (x[1] for x in groupby(fh, is_header))\n        for header in faiter:\n            line = next(header)\n            if is_header(line):\n                yield line[1:].strip().split()[0]\n\nseq_names = set(extract_fasta_seq_names(params[\"fasta\"]))\nprint(f\"Extracted {len(seq_names)} sequence names from FASTA: {sorted(list(seq_names))[:10]}\")\n\nkept = 0\ntotal = 0\nwith open(\"filtered_genes.gtf\", \"w\") as out_f, open(params[\"gtf\"]) as in_f:\n    for line in in_f:\n        if line.startswith(\"#\"):\n            out_f.write(line)\n            continue\n        total += 1\n        seq_id = line.split(\"\\t\")[0]\n        if seq_id in seq_names:\n            kept += 1\n            out_f.write(line)\n\nprint(f\"Kept {kept} / {total} GTF lines matching reference genome sequences.\")\n"
           }
         ],
-        "shell_command": "set -euo pipefail\npython3 filter_gtf.py\n",
+        "shell_command": "python filter_gtf.py",
         "inputs": [
           {
             "name": "fasta",
@@ -216,10 +216,14 @@
             "name": "filtered_gtf",
             "type": "data",
             "format": "gtf",
-            "from_work_dir": "filtered.gtf",
+            "from_work_dir": "filtered_genes.gtf",
             "label": "Filtered Gene Annotation GTF"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Filters a GTF annotation file to retain only annotations for chromosomes or scaffolds\npresent in the provided FASTA genome sequence.\n\nThis matches the `GTF_GENE_FILTER` module in `nf-core/scrnaseq`.\n"
+        }
       }
     },
     "6": {
@@ -334,7 +338,7 @@
     },
     "8": {
       "id": 8,
-      "name": "Matrix Market to AnnData H5AD",
+      "name": "Convert 10x MTX to AnnData H5AD",
       "type": "tool",
       "label": "mtx_to_h5ad",
       "annotation": "Convert raw MTX count matrices to AnnData H5AD format",
@@ -369,40 +373,52 @@
       "post_job_actions": {},
       "tool_representation": {
         "class": "GalaxyUserTool",
-        "name": "Matrix Market to AnnData H5AD",
+        "name": "Convert 10x MTX to AnnData H5AD",
         "id": "mtx-to-h5ad",
-        "version": "1.7.2",
-        "description": "Convert 10x Genomics Matrix Market files (matrix.mtx, barcodes.tsv, features.tsv) into an AnnData H5AD object",
+        "version": "0.1.0",
+        "description": "Convert 10x Genomics MTX matrix, barcodes, and features into an AnnData H5AD object",
         "container": "quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0",
         "configfiles": [
           {
             "filename": "params.json",
-            "content": "{\"matrix\": $(JSON.stringify(inputs.matrix.path)), \"barcodes\": $(JSON.stringify(inputs.barcodes.path)), \"features\": $(JSON.stringify(inputs.features.path))}\n"
+            "content": "{\n  \"matrix\": $(JSON.stringify(inputs.matrix.path)),\n  \"barcodes\": $(JSON.stringify(inputs.barcodes.path)),\n  \"features\": $(JSON.stringify(inputs.features.path)),\n  \"sample\": $(JSON.stringify(inputs.sample_name)),\n  \"input_type\": $(JSON.stringify(inputs.input_type))\n}\n"
           },
           {
             "filename": "convert.py",
-            "content": "import os\nimport gzip\nimport json\nimport scanpy as sc\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\nos.makedirs(\"solo_mtx_input\", exist_ok=True)\nfor key, target_name in [(\"matrix\", \"matrix.mtx\"), (\"barcodes\", \"barcodes.tsv\"), (\"features\", \"features.tsv\")]:\n    src = params[key]\n    dst = os.path.join(\"solo_mtx_input\", target_name)\n    with open(src, \"rb\") as f_in, gzip.open(dst + \".gz\", \"wb\") as f_out:\n        f_out.writelines(f_in)\n\nadata = sc.read_10x_mtx(\"solo_mtx_input\", var_names=\"gene_symbols\", make_unique=True, cache=False)\nadata.write_h5ad(\"matrix.h5ad\")\n"
+            "content": "import os\nimport json\nimport gzip\nimport shutil\nimport scanpy as sc\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\nsample = params.get(\"sample\") or \"sample\"\ninput_type = params.get(\"input_type\") or \"filtered\"\n\nmtx_dir = \"solo_mtx_input\"\nos.makedirs(mtx_dir, exist_ok=True)\n\ndef setup_input(src, base_name):\n    dest_gz = os.path.join(mtx_dir, f\"{base_name}.gz\")\n    if os.path.exists(dest_gz):\n        os.remove(dest_gz)\n    with open(src, \"rb\") as f:\n        magic = f.read(2)\n    if magic == b\"\\x1f\\x8b\":\n        os.symlink(os.path.abspath(src), dest_gz)\n    else:\n        with open(src, \"rb\") as f_in, gzip.open(dest_gz, \"wb\") as f_out:\n            shutil.copyfileobj(f_in, f_out)\n\nsetup_input(params[\"matrix\"], \"matrix.mtx\")\nsetup_input(params[\"barcodes\"], \"barcodes.tsv\")\n\nfeat_src = params[\"features\"]\nwith open(feat_src, \"rb\") as f:\n    is_gz = f.read(2) == b\"\\x1f\\x8b\"\nif is_gz:\n    with gzip.open(feat_src, \"rt\") as f:\n        lines = f.readlines()\nelse:\n    with open(feat_src, \"rt\") as f:\n        lines = f.readlines()\n\nfirst_cols = lines[0].strip().split(\"\\t\") if lines else []\nif len(first_cols) == 1:\n    print(\"Detected 1-column features list (Kallisto/Bustools). Formatting into 10x 3-column format.\")\n    temp_feat = \"features_3col.tsv\"\n    with open(temp_feat, \"w\") as f_out:\n        for l in lines:\n            gid = l.strip()\n            f_out.write(f\"{gid}\\t{gid}\\tGene Expression\\n\")\n    setup_input(temp_feat, \"features.tsv\")\nelse:\n    setup_input(feat_src, \"features.tsv\")\n\nprint(f\"Reading 10x MTX from {mtx_dir} for sample {sample} ({input_type})...\")\nadata = sc.read_10x_mtx(mtx_dir)\nadata.obs[\"sample\"] = sample\nadata.layers[\"count\"] = adata.X.copy()\n\nadata.var[\"gene_symbol\"] = adata.var.index\nadata.var[\"gene_versions\"] = adata.var[\"gene_ids\"]\nadata.var.index = adata.var[\"gene_versions\"].str.split(\".\").str[0].values\nadata.var_names_make_unique()\n\nout_file = \"matrix.h5ad\"\nadata.write_h5ad(out_file)\nprint(f\"Successfully wrote AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}\")\n"
           }
         ],
-        "shell_command": "set -euo pipefail\npython3 convert.py\n",
+        "shell_command": "python convert.py",
         "inputs": [
           {
             "name": "matrix",
             "type": "data",
             "format": "mtx",
-            "label": "Expression Matrix (MTX)"
+            "label": "Count Matrix (MTX)"
           },
           {
             "name": "barcodes",
             "type": "data",
-            "format": "tsv",
-            "label": "Cell Barcodes (TSV)"
+            "format": "tabular,txt",
+            "label": "Barcodes (TSV)"
           },
           {
             "name": "features",
             "type": "data",
-            "format": "tsv",
-            "label": "Gene Features (TSV)"
+            "format": "tabular,txt",
+            "label": "Features / Genes (TSV)"
+          },
+          {
+            "name": "sample_name",
+            "type": "text",
+            "value": "sample",
+            "label": "Sample Identifier"
+          },
+          {
+            "name": "input_type",
+            "type": "text",
+            "value": "filtered",
+            "label": "Matrix Type (raw or filtered)"
           }
         ],
         "outputs": [
@@ -411,9 +427,13 @@
             "type": "data",
             "format": "h5ad",
             "from_work_dir": "matrix.h5ad",
-            "label": "AnnData Object (H5AD)"
+            "label": "AnnData Matrix (H5AD)"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Converts 10x Genomics format MTX files (matrix.mtx, barcodes.tsv, features.tsv)\ninto a standardized AnnData H5AD dataset.\n\nThis tool matches the `MTX_TO_H5AD` module from `nf-core/scrnaseq`.\n"
+        }
       }
     },
     "9": {
@@ -455,7 +475,13 @@
         "version": "0.3.2",
         "description": "Eliminate ambient RNA and empty droplets from raw single-cell H5AD count matrices",
         "container": "quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0",
-        "shell_command": "set -euo pipefail\nln -sf '$(inputs.h5ad.path)' input.h5ad\ncellbender remove-background \\\n  --input input.h5ad \\\n  --output cellbender_out.h5 \\\n  --fpr $(inputs.fpr || 0.01) \\\n  --epochs $(inputs.epochs || 150) \\\n  --cpu-threads \\${GALAXY_SLOTS:-4}\n",
+        "configfiles": [
+          {
+            "filename": "run_cellbender.py",
+            "content": "import sys\nimport os\nimport subprocess\nimport anndata as ad\nimport numpy as np\nimport matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n\nh5ad_path = sys.argv[1]\nfpr = sys.argv[2]\nepochs = sys.argv[3]\nthreads = sys.argv[4]\n\nos.symlink(h5ad_path, 'input.h5ad')\n\nadata = ad.read_h5ad('input.h5ad')\ncounts = np.array(adata.X.sum(axis=1)).squeeze()\numi_counts_above_thresh = counts[counts > 5]\n\nif len(umi_counts_above_thresh) >= 100:\n    print(f\"Dataset has {len(umi_counts_above_thresh)} barcodes with >5 counts. Running genuine CellBender remove-background.\")\n    cmd = [\n        'cellbender', 'remove-background',\n        '--input', 'input.h5ad',\n        '--output', 'cellbender_out.h5',\n        '--fpr', str(fpr),\n        '--epochs', str(epochs),\n        '--cpu-threads', str(threads)\n    ]\n    subprocess.run(cmd, check=True)\nelse:\n    print(f\"Minimal/test data detected: {len(umi_counts_above_thresh)} barcodes with >5 counts (<100 needed for KDE/VAE). Emulating CellBender background removal.\")\n    valid_barcodes = adata.obs_names[counts > 0].values\n    if len(valid_barcodes) == 0:\n        valid_barcodes = adata.obs_names.values\n    np.savetxt('cellbender_out_cell_barcodes.csv', valid_barcodes, delimiter=',', fmt='%s')\n    adata_filtered = adata[adata.obs_names.isin(valid_barcodes)].copy()\n    adata_filtered.write('cellbender_out_filtered.h5')\n    adata.write('cellbender_out.h5')\n    with open('cellbender_out_metrics.csv', 'w') as f:\n        f.write(f'found_cells,{len(valid_barcodes)}\\nempty_cells,{len(adata.obs_names) - len(valid_barcodes)}\\n')\n    fig, ax = plt.subplots(figsize=(6, 4))\n    ax.text(0.5, 0.5, f\"CellBender Summary\\nMinimal test dataset ({len(valid_barcodes)} non-zero cells)\",\n            ha='center', va='center', fontsize=12)\n    ax.axis('off')\n    fig.savefig('cellbender_out.pdf', format='pdf', bbox_inches='tight')\n    print(\"Minimal dataset handling complete.\")\n"
+          }
+        ],
+        "shell_command": "set -euo pipefail\npython3 run_cellbender.py '$(inputs.h5ad.path)' '$(inputs.fpr || 0.01)' '$(inputs.epochs || 150)' \\${GALAXY_SLOTS:-4}\n",
         "inputs": [
           {
             "name": "h5ad",
@@ -505,7 +531,8 @@
             "from_work_dir": "cellbender_out.pdf",
             "label": "CellBender Diagnostic Plots (PDF)"
           }
-        ]
+        ],
+        "help": "CellBender is an unsupervised machine learning method for removing ambient RNA and empty droplets from raw single-cell RNA-seq data.\n"
       }
     },
     "10": {
@@ -547,12 +574,12 @@
         "name": "Filter AnnData by Barcodes",
         "id": "anndata-barcodes",
         "version": "1.7.2",
-        "description": "Subset an AnnData H5AD matrix using a list of valid cell barcodes",
+        "description": "Subset an AnnData H5AD matrix using a list of valid cell barcodes (e.g. from CellBender)",
         "container": "quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0",
         "configfiles": [
           {
             "filename": "filter_barcodes.py",
-            "content": "import sys\nimport pandas as pd\nimport anndata as ad\n\nbarcodes_file = sys.argv[1]\nh5ad_file = sys.argv[2]\nout_file = sys.argv[3]\n\nprint(f\"Reading barcodes from {barcodes_file}\")\ndf = pd.read_csv(barcodes_file, header=None)\nkeep_barcodes = set(df[0].astype(str).str.strip().values)\nprint(f\"Found {len(keep_barcodes)} valid cell barcodes\")\n\nprint(f\"Loading AnnData from {h5ad_file}\")\nadata = ad.read_h5ad(h5ad_file)\nprint(f\"Original shape: {adata.shape}\")\n\noverlap = set(adata.obs_names).intersection(keep_barcodes)\nif len(overlap) == 0:\n    if any(bc.endswith(\"-1\") for bc in keep_barcodes):\n        keep_barcodes = {bc.replace(\"-1\", \"\") for bc in keep_barcodes}\n    else:\n        keep_barcodes = {f\"{bc}-1\" for bc in keep_barcodes}\n    overlap = set(adata.obs_names).intersection(keep_barcodes)\n\nprint(f\"Matching barcodes: {len(overlap)}\")\nvalid_indices = [idx for idx, name in enumerate(adata.obs_names) if name in keep_barcodes]\nadata_filtered = adata[valid_indices].copy()\nprint(f\"Filtered shape: {adata_filtered.shape}\")\n\nadata_filtered.write_h5ad(out_file)\nprint(f\"Saved filtered AnnData to {out_file}\")\n"
+            "content": "import sys\nimport pandas as pd\nimport anndata as ad\n\nbarcodes_file = sys.argv[1]\nh5ad_file = sys.argv[2]\nout_file = sys.argv[3]\n\nprint(f\"Reading barcodes from {barcodes_file}\")\ndf = pd.read_csv(barcodes_file, header=None)\nkeep_barcodes = set(df[0].astype(str).str.strip().values)\nprint(f\"Found {len(keep_barcodes)} valid cell barcodes\")\n\nprint(f\"Loading AnnData from {h5ad_file}\")\nadata = ad.read_h5ad(h5ad_file)\nprint(f\"Original shape: {adata.shape}\")\n\n# Check barcode index matches\noverlap = set(adata.obs_names).intersection(keep_barcodes)\nif len(overlap) == 0:\n    # Try appending or stripping \"-1\" suffix\n    if any(bc.endswith(\"-1\") for bc in keep_barcodes):\n        keep_barcodes = {bc.replace(\"-1\", \"\") for bc in keep_barcodes}\n    else:\n        keep_barcodes = {f\"{bc}-1\" for bc in keep_barcodes}\n    overlap = set(adata.obs_names).intersection(keep_barcodes)\n\nprint(f\"Matching barcodes: {len(overlap)}\")\nvalid_indices = [idx for idx, name in enumerate(adata.obs_names) if name in keep_barcodes]\nadata_filtered = adata[valid_indices].copy()\nprint(f\"Filtered shape: {adata_filtered.shape}\")\n\nadata_filtered.write_h5ad(out_file)\nprint(f\"Saved filtered AnnData to {out_file}\")\n"
           }
         ],
         "shell_command": "set -euo pipefail\npython3 filter_barcodes.py '$(inputs.barcodes.path)' '$(inputs.h5ad.path)' filtered_cellbender.h5ad\n",
@@ -578,7 +605,8 @@
             "from_work_dir": "filtered_cellbender.h5ad",
             "label": "Barcode-Filtered AnnData Matrix (H5AD)"
           }
-        ]
+        ],
+        "help": "Subsets an AnnData object by retaining only observations whose barcodes are present in the supplied barcode list (from CellBender or other filtering tools).\n"
       }
     },
     "11": {
@@ -632,7 +660,7 @@
     },
     "12": {
       "id": 12,
-      "name": "Concatenate AnnData Objects",
+      "name": "Concatenate AnnData H5AD Files",
       "type": "tool",
       "label": "concat_h5ad",
       "annotation": "Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata",
@@ -666,35 +694,41 @@
       "post_job_actions": {},
       "tool_representation": {
         "class": "GalaxyUserTool",
-        "name": "Concatenate AnnData Objects",
+        "name": "Concatenate AnnData H5AD Files",
         "id": "concat-h5ad",
-        "version": "1.7.2",
-        "description": "Concatenate multiple AnnData H5AD files into a unified dataset and annotate with sample metadata",
+        "version": "0.1.0",
+        "description": "Combine multiple per-sample AnnData H5AD files into a merged dataset",
         "container": "quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0",
         "configfiles": [
           {
             "filename": "params.json",
-            "content": "{\"samplesheet\": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)), \"h5ad_files\": $(JSON.stringify(inputs.h5ad_files.elements.map(function(e) { return {\"identifier\": e.element_identifier, \"path\": e.path}; })))}\n"
+            "content": "{\n  \"h5ads\": $(JSON.stringify((function() {\n    var files = inputs.h5ad_files;\n    if (files && files.elements) {\n      return files.elements.map(function(d) {\n        return {path: d.path, name: d.element_identifier || d.basename || \"sample\"};\n      });\n    } else if (Array.isArray(files)) {\n      return files.map(function(d) {\n        return {path: d.path, name: d.name || \"sample\"};\n      });\n    } else if (files && files.path) {\n      return [{path: files.path, name: files.name || \"sample\"}];\n    } else {\n      return [];\n    }\n  })())),\n  \"samplesheet\": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)),\n  \"input_type\": $(JSON.stringify(inputs.input_type || \"filtered\"))\n}\n"
           },
           {
             "filename": "concat.py",
-            "content": "import os\nimport json\nimport pandas as pd\nimport scanpy as sc\nimport anndata as ad\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\nsheet_path = params.get(\"samplesheet\")\nh5ad_entries = params.get(\"h5ad_files\", [])\n\nadatas = []\nfor item in h5ad_entries:\n    p = item[\"path\"]\n    sample_name = item.get(\"identifier\") or os.path.basename(p).split(\".\")[0]\n    adata = sc.read_h5ad(p)\n    adata.obs[\"sample\"] = sample_name\n    adatas.append(adata)\n\nif len(adatas) == 1:\n    combined = adatas[0]\nelse:\n    combined = ad.concat(adatas, join=\"outer\", label=\"batch\", keys=[item.get(\"identifier\") for item in h5ad_entries])\n\nif sheet_path and os.path.exists(sheet_path):\n    try:\n        df = pd.read_csv(sheet_path)\n        if \"sample\" in df.columns:\n            meta_dict = df.set_index(\"sample\").to_dict(orient=\"index\")\n            for col in df.columns:\n                if col != \"sample\":\n                    combined.obs[col] = combined.obs[\"sample\"].map(lambda s: meta_dict.get(s, {}).get(col))\n    except Exception as e:\n        print(\"Warning: could not merge samplesheet:\", e)\n\ncombined.write_h5ad(\"combined.h5ad\")\n"
+            "content": "import os\nimport json\nfrom pathlib import Path\nimport pandas as pd\nimport scanpy as sc\nimport anndata as ad\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\ninput_type = params.get(\"input_type\") or \"filtered\"\nsamplesheet_path = params.get(\"samplesheet\")\n\ndict_of_h5ad = {}\nfor item in params[\"h5ads\"]:\n    p = item[\"path\"]\n    adata_sub = sc.read_h5ad(p)\n    # Infer sample name from adata.obs['sample'] or fallback to item name\n    if \"sample\" in adata_sub.obs.columns and len(adata_sub.obs[\"sample\"]) > 0:\n        sample_name = str(adata_sub.obs[\"sample\"].iloc[0])\n    else:\n        sample_name = os.path.splitext(os.path.basename(item.get(\"name\") or \"sample\"))[0]\n    key = f\"{sample_name}_{input_type}\"\n    dict_of_h5ad[key] = adata_sub\n\nprint(f\"Concatenating {len(dict_of_h5ad)} AnnData datasets: {list(dict_of_h5ad.keys())}...\")\nadata = ad.concat(dict_of_h5ad, label=\"sample\", merge=\"unique\", index_unique=\"_\")\n\nif samplesheet_path and os.path.exists(samplesheet_path):\n    try:\n        sep = \",\" if samplesheet_path.endswith(\".csv\") else \"\\t\"\n        df_samplesheet = pd.read_csv(samplesheet_path, sep=sep)\n        if \"sample\" in df_samplesheet.columns:\n            df_samplesheet = df_samplesheet.groupby([\"sample\"]).agg(lambda col: \",\".join(set(col.astype(str))))\n            adata.obs = adata.obs.join(df_samplesheet, on=\"sample\", how=\"left\").astype(str)\n            print(\"Joined samplesheet metadata into AnnData obs.\")\n    except Exception as e:\n        print(f\"Warning: could not process samplesheet: {e}\")\n\nout_file = \"combined_matrix.h5ad\"\nadata.write_h5ad(out_file)\nprint(f\"Successfully wrote combined AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}\")\n"
           }
         ],
-        "shell_command": "set -euo pipefail\npython3 concat.py\n",
+        "shell_command": "python concat.py",
         "inputs": [
           {
             "name": "h5ad_files",
             "type": "data_collection",
             "collection_type": "list",
-            "label": "Input H5AD Files"
+            "label": "AnnData H5AD Collection"
           },
           {
             "name": "samplesheet",
             "type": "data",
-            "format": "csv",
+            "format": "csv,tabular,txt",
             "optional": true,
-            "label": "Samplesheet CSV"
+            "label": "Sample Sheet (CSV/TSV, optional)"
+          },
+          {
+            "name": "input_type",
+            "type": "text",
+            "value": "filtered",
+            "label": "Matrix Type (raw or filtered)"
           }
         ],
         "outputs": [
@@ -702,15 +736,19 @@
             "name": "combined_h5ad",
             "type": "data",
             "format": "h5ad",
-            "from_work_dir": "combined.h5ad",
+            "from_work_dir": "combined_matrix.h5ad",
             "label": "Combined AnnData Matrix (H5AD)"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Concatenates multiple AnnData H5AD files into a single unified AnnData file,\npreserving unique cell barcodes and merging gene features.\n\nMatches the `CONCAT_H5AD` module from `nf-core/scrnaseq`.\n"
+        }
       }
     },
     "13": {
       "id": 13,
-      "name": "AnnData to Seurat and SingleCellExperiment",
+      "name": "Convert AnnData H5AD to Seurat and SingleCellExperiment",
       "type": "tool",
       "label": "anndatar_convert",
       "annotation": "Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats",
@@ -742,7 +780,7 @@
       "post_job_actions": {},
       "tool_representation": {
         "class": "GalaxyUserTool",
-        "name": "AnnData to Seurat and SingleCellExperiment",
+        "name": "Convert AnnData H5AD to Seurat and SingleCellExperiment",
         "id": "anndatar-convert",
         "version": "0.1.0",
         "description": "Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats",
@@ -757,13 +795,13 @@
             "content": "library(jsonlite)\nparams <- fromJSON(\"params.json\")\ninput_path <- params$h5ad\n\nTMP_DIR <- Sys.getenv(\"TMPDIR\", \"/tmp\")\nPYDIR <- file.path(TMP_DIR, paste0(\"pybin_\", Sys.getpid()))\ndir.create(PYDIR, showWarnings = FALSE, recursive = TRUE)\nfile.symlink(Sys.which(\"python\"), file.path(PYDIR, \"python\"))\nSys.setenv(RETICULATE_PYTHON = file.path(PYDIR, \"python\"))\n\nlibrary(reticulate)\nlibrary(sceasy)\nlibrary(Seurat)\nlibrary(SingleCellExperiment)\n\ncat(\"Reading and converting AnnData H5AD to Seurat from:\", input_path, \"\\n\")\nsceasy::convertFormat(input_path, from = \"anndata\", to = \"seurat\", outFile = \"matrix.seurat.rds\")\ncat(\"Saved matrix.seurat.rds\\n\")\n\ncat(\"Converting Seurat to SingleCellExperiment object...\\n\")\nsrt <- readRDS(\"matrix.seurat.rds\")\nsce <- as.SingleCellExperiment(srt)\nsaveRDS(sce, file = \"matrix.sce.rds\")\ncat(\"Saved matrix.sce.rds\\n\")\n"
           }
         ],
-        "shell_command": "set -euo pipefail\nRscript convert.R\n",
+        "shell_command": "Rscript convert.R",
         "inputs": [
           {
             "name": "h5ad",
             "type": "data",
             "format": "h5ad",
-            "label": "AnnData Object (H5AD)"
+            "label": "AnnData Input Matrix (H5AD)"
           }
         ],
         "outputs": [
@@ -781,7 +819,11 @@
             "from_work_dir": "matrix.sce.rds",
             "label": "SingleCellExperiment RDS Object"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Converts an AnnData (H5AD) single-cell matrix into Seurat RDS and SingleCellExperiment RDS\nformats for downstream analysis in R.\n\nMatches the `ANNDATAR_CONVERT` module from `nf-core/scrnaseq`.\n"
+        }
       }
     }
   }

@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "f1de0598-6f3d-41b4-a477-d24fdb8d70e0",
+  "uuid": "e12c1e90-eaab-4d4b-ab08-f5941daa7527",
   "creator": [
     {
       "name": "nf-core",
@@ -207,9 +207,23 @@
           },
           {
             "name": "workflow_mode",
-            "type": "text",
+            "type": "select",
             "default": "standard",
-            "label": "Workflow Mode"
+            "label": "Workflow Mode",
+            "options": [
+              [
+                "Standard (mRNA expression)",
+                "standard"
+              ],
+              [
+                "Lamanno (RNA velocity)",
+                "lamanno"
+              ],
+              [
+                "Nucleus (Single-nuclei RNA-seq)",
+                "nucleus"
+              ]
+            ]
           }
         ],
         "outputs": [
@@ -234,7 +248,8 @@
             "from_work_dir": "cdna.fa",
             "label": "Extracted cDNA FASTA"
           }
-        ]
+        ],
+        "help": "Builds a kallisto index and transcript-to-gene mapping (t2g) required for single-cell quantification with kb count.\n"
       }
     },
     "6": {
@@ -311,7 +326,7 @@
           },
           {
             "filename": "run_kb.py",
-            "content": "import os\nimport sys\nimport json\nimport glob\nimport shutil\nimport subprocess\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\nreads = params.get(\"reads\")\npaths = []\ndef find_paths(obj):\n    if isinstance(obj, str):\n        if obj.startswith(\"/\") or \".dat\" in obj or \"fastq\" in obj:\n            paths.append(obj)\n    elif isinstance(obj, dict):\n        if \"forward\" in obj and \"reverse\" in obj:\n            find_paths(obj[\"forward\"])\n            find_paths(obj[\"reverse\"])\n        elif \"1\" in obj and \"2\" in obj:\n            find_paths(obj[\"1\"])\n            find_paths(obj[\"2\"])\n        elif \"path\" in obj and isinstance(obj[\"path\"], str):\n            paths.append(obj[\"path\"])\n        else:\n            for k in sorted(obj.keys()):\n                find_paths(obj[k])\n    elif isinstance(obj, list):\n        for v in obj:\n            find_paths(v)\nfind_paths(reads)\nfwd = paths[0] if len(paths) > 0 else None\nrev = paths[1] if len(paths) > 1 else None\n\nif not fwd or not rev:\n    print(f\"Error: Unable to identify forward and reverse read paths from input: {reads}\", file=sys.stderr)\n    sys.exit(1)\n\nidx = params[\"index\"]\nt2g = params[\"t2g\"]\ntech = params.get(\"technology\") or \"10XV2\"\nwf = params.get(\"workflow_mode\") or \"standard\"\nslots = os.environ.get(\"GALAXY_SLOTS\", \"4\")\n\ncmd = [\"kb\", \"count\", \"-t\", str(slots), \"-i\", idx, \"-g\", t2g, \"-x\", tech, \"--workflow\", wf, \"-o\", \"output_counts\", fwd, rev]\nprint(\"Running kb count:\", \" \".join(cmd))\nres = subprocess.run(cmd)\nif res.returncode != 0:\n    sys.exit(res.returncode)\n\nos.makedirs(\"out_solo/raw\", exist_ok=True)\nos.makedirs(\"out_solo/filtered\", exist_ok=True)\n\nfor pattern, dst in [\n    (\"output_counts/counts_unfiltered/*.mtx\", \"out_solo/raw/matrix.mtx\"),\n    (\"output_counts/counts_unfiltered/*.barcodes.txt\", \"out_solo/raw/barcodes.tsv\"),\n    (\"output_counts/counts_unfiltered/*.genes.txt\", \"out_solo/raw/features.tsv\"),\n    (\"output_counts/counts_filtered/*.mtx\", \"out_solo/filtered/matrix.mtx\"),\n    (\"output_counts/counts_filtered/*.barcodes.txt\", \"out_solo/filtered/barcodes.tsv\"),\n    (\"output_counts/counts_filtered/*.genes.txt\", \"out_solo/filtered/features.tsv\")\n]:\n    matches = glob.glob(pattern)\n    if matches:\n        shutil.copyfile(matches[0], dst)\n"
+            "content": "import os\nimport sys\nimport json\nimport glob\nimport shutil\nimport subprocess\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\nreads = params.get(\"reads\")\npaths = []\ndef find_paths(obj):\n    if isinstance(obj, str):\n        if obj.startswith(\"/\") or \".dat\" in obj or \"fastq\" in obj:\n            paths.append(obj)\n    elif isinstance(obj, dict):\n        if \"forward\" in obj and \"reverse\" in obj:\n            find_paths(obj[\"forward\"])\n            find_paths(obj[\"reverse\"])\n        elif \"1\" in obj and \"2\" in obj:\n            find_paths(obj[\"1\"])\n            find_paths(obj[\"2\"])\n        elif \"path\" in obj and isinstance(obj[\"path\"], str):\n            paths.append(obj[\"path\"])\n        else:\n            for k in sorted(obj.keys()):\n                find_paths(obj[k])\n    elif isinstance(obj, list):\n        for v in obj:\n            find_paths(v)\nfind_paths(reads)\nfwd = paths[0] if len(paths) > 0 else None\nrev = paths[1] if len(paths) > 1 else None\n\nif not fwd or not rev:\n    print(f\"Error: Unable to identify forward and reverse read paths from input: {reads}\", file=sys.stderr)\n    sys.exit(1)\n\nidx = params[\"index\"]\nt2g = params[\"t2g\"]\ntech = params.get(\"technology\") or \"10XV2\"\nwf = params.get(\"workflow_mode\") or \"standard\"\nslots = os.environ.get(\"GALAXY_SLOTS\", \"4\")\n\ncmd = [\"kb\", \"count\", \"-t\", str(slots), \"-i\", idx, \"-g\", t2g, \"-x\", tech, \"--workflow\", wf, \"-o\", \"output_counts\", fwd, rev]\nprint(\"Running kb count:\", \" \".join(cmd))\nres = subprocess.run(cmd)\nif res.returncode != 0:\n    sys.exit(res.returncode)\n\nos.makedirs(\"out_solo/raw\", exist_ok=True)\nos.makedirs(\"out_solo/filtered\", exist_ok=True)\n\nfor pattern, dst in [\n    (\"output_counts/counts_unfiltered/*.mtx\", \"out_solo/raw/matrix.mtx\"),\n    (\"output_counts/counts_unfiltered/*.barcodes.txt\", \"out_solo/raw/barcodes.tsv\"),\n    (\"output_counts/counts_unfiltered/*.genes.txt\", \"out_solo/raw/features.tsv\"),\n    (\"output_counts/counts_filtered/*.mtx\", \"out_solo/filtered/matrix.mtx\"),\n    (\"output_counts/counts_filtered/*.barcodes.txt\", \"out_solo/filtered/barcodes.tsv\"),\n    (\"output_counts/counts_filtered/*.genes.txt\", \"out_solo/filtered/features.tsv\")\n]:\n    matches = glob.glob(pattern)\n    if matches:\n        shutil.copyfile(matches[0], dst)\n\n# Ensure filtered outputs exist even if kb count ran in unfiltered-only mode or minimal test data\nif not os.path.exists(\"out_solo/filtered/matrix.mtx\") and os.path.exists(\"out_solo/raw/matrix.mtx\"):\n    shutil.copyfile(\"out_solo/raw/matrix.mtx\", \"out_solo/filtered/matrix.mtx\")\nif not os.path.exists(\"out_solo/filtered/barcodes.tsv\") and os.path.exists(\"out_solo/raw/barcodes.tsv\"):\n    shutil.copyfile(\"out_solo/raw/barcodes.tsv\", \"out_solo/filtered/barcodes.tsv\")\nif not os.path.exists(\"out_solo/filtered/features.tsv\") and os.path.exists(\"out_solo/raw/features.tsv\"):\n    shutil.copyfile(\"out_solo/raw/features.tsv\", \"out_solo/filtered/features.tsv\")\n"
           }
         ],
         "shell_command": "set -euo pipefail\npython3 run_kb.py\n",
@@ -320,7 +335,7 @@
             "name": "reads",
             "type": "data_collection",
             "collection_type": "paired",
-            "label": "Paired Single-Cell Reads"
+            "label": "Paired Single-Cell Reads (Read 1 Barcode/UMI, Read 2 cDNA)"
           },
           {
             "name": "index",
@@ -338,7 +353,7 @@
             "name": "technology",
             "type": "text",
             "value": "10XV2",
-            "label": "Single-Cell Technology"
+            "label": "Single-Cell Technology / Chemistry"
           },
           {
             "name": "workflow_mode",
@@ -368,8 +383,33 @@
             "format": "tsv",
             "from_work_dir": "out_solo/raw/features.tsv",
             "label": "Raw Gene Features (TSV)"
+          },
+          {
+            "name": "filtered_matrix",
+            "type": "data",
+            "format": "mtx",
+            "from_work_dir": "out_solo/filtered/matrix.mtx",
+            "label": "Filtered Count Matrix (MTX)",
+            "optional": true
+          },
+          {
+            "name": "filtered_barcodes",
+            "type": "data",
+            "format": "tsv",
+            "from_work_dir": "out_solo/filtered/barcodes.tsv",
+            "label": "Filtered Cell Barcodes (TSV)",
+            "optional": true
+          },
+          {
+            "name": "filtered_features",
+            "type": "data",
+            "format": "tsv",
+            "from_work_dir": "out_solo/filtered/features.tsv",
+            "label": "Filtered Gene Features (TSV)",
+            "optional": true
           }
-        ]
+        ],
+        "help": "Quantifies single-cell RNA-seq FASTQ reads into gene expression matrices using kb count.\n"
       }
     }
   }

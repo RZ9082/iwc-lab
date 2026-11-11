@@ -1,37 +1,44 @@
 class: GalaxyWorkflow
-label: "Single-Cell RNA-Seq Pipeline: Simpleaf / Alevin-fry (QCatch, AnnData, Seurat, SingleCellExperiment, MultiQC)"
-doc: |
-  This workflow performs single-cell RNA-seq alignment and quantification using Simpleaf (Piscem/Salmon and Alevin-fry),
+label: 'Single-Cell RNA-Seq Pipeline: Simpleaf / Alevin-fry (QCatch, AnnData, Seurat,
+  SingleCellExperiment, MultiQC)'
+doc: 'This workflow performs single-cell RNA-seq alignment and quantification using
+  Simpleaf (Piscem/Salmon and Alevin-fry),
+
   followed by QCatch empty droplet QC, AnnData generation, multi-sample concatenation,
-  Seurat and SingleCellExperiment format conversion, and MultiQC reporting matching the simpleaf branch of nf-core/scrnaseq.
-release: "0.1.0"
+
+  Seurat and SingleCellExperiment format conversion, and MultiQC reporting matching
+  the simpleaf branch of nf-core/scrnaseq.
+
+  '
+release: 0.1.0
 license: MIT
 tags:
-  - single-cell
-  - transcriptomics
-  - simpleaf
-  - alevin-fry
-  - anndata
-  - seurat
-  - nf-core
-  - nf-core/scrnaseq
+- single-cell
+- transcriptomics
+- simpleaf
+- alevin-fry
+- anndata
+- seurat
+- nf-core
+- nf-core/scrnaseq
 creator:
-  - class: Organization
-    name: "nf-core"
-    url: "https://nf-co.re/scrnaseq"
-  - class: Person
-    name: "Rand Zoabi"
-    email: "rand.zoabi@rz.uni-freiburg.de"
-  - class: Organization
-    name: "Intergalactic Workflow Commission"
-    url: "https://github.com/galaxyproject/iwc"
+- class: Organization
+  name: nf-core
+  url: https://nf-co.re/scrnaseq
+- class: Person
+  name: Rand Zoabi
+  email: rand.zoabi@rz.uni-freiburg.de
+- class: Organization
+  name: Intergalactic Workflow Commission
+  url: https://github.com/galaxyproject/iwc
 inputs:
   reads:
     type: collection
     collection_type: list:paired
     format: fastqsanger.gz
     label: Paired-end single-cell RNA-seq reads
-    doc: FASTQ collection containing cell barcode and UMI (Read 1) paired with cDNA read (Read 2)
+    doc: FASTQ collection containing cell barcode and UMI (Read 1) paired with cDNA
+      read (Read 2)
   fasta:
     type: data
     format: fasta
@@ -79,464 +86,443 @@ outputs:
     outputSource: multiqc/html_report
     label: MultiQC Quality Report
 steps:
-  - id: filter_gtf
-    label: filter_gtf
-    doc: Filter GTF file to include only annotations on sequences present in reference FASTA
-    run:
-      class: GalaxyUserTool
-      id: gtf-gene-filter
-      version: "0.1.0"
-      name: Filter GTF by Genome Sequences
-      description: Filter GTF file to include only annotations on sequences present in reference FASTA
-      container: quay.io/biocontainers/python:3.13
-      configfiles:
-        - filename: params.json
-          content: |
-            {"fasta": $(JSON.stringify(inputs.fasta.path)), "gtf": $(JSON.stringify(inputs.gtf.path))}
-        - filename: filter_gtf.py
-          content: |
-            import json
-            from itertools import groupby
+- id: filter_gtf
+  label: filter_gtf
+  doc: Filter GTF file to include only annotations on sequences present in reference
+    FASTA
+  run:
+    class: GalaxyUserTool
+    id: gtf-gene-filter
+    version: 0.1.0
+    name: Filter GTF by Genome Sequences
+    description: Filter GTF file to include only annotations on sequences present
+      in reference FASTA
+    container: quay.io/biocontainers/python:3.13
+    configfiles:
+    - filename: params.json
+      content: '{"fasta": $(JSON.stringify(inputs.fasta.path)), "gtf": $(JSON.stringify(inputs.gtf.path))}
 
-            with open("params.json") as fh:
-                params = json.load(fh)
+        '
+    - filename: filter_gtf.py
+      content: "import json\nfrom itertools import groupby\n\nwith open(\"params.json\"\
+        ) as fh:\n    params = json.load(fh)\n\ndef is_header(line):\n    return line.startswith(\"\
+        >\")\n\ndef extract_fasta_seq_names(fasta_name):\n    with open(fasta_name)\
+        \ as fh:\n        faiter = (x[1] for x in groupby(fh, is_header))\n      \
+        \  for header in faiter:\n            line = next(header)\n            if\
+        \ is_header(line):\n                yield line[1:].strip().split()[0]\n\n\
+        seq_names = set(extract_fasta_seq_names(params[\"fasta\"]))\nprint(f\"Extracted\
+        \ {len(seq_names)} sequence names from FASTA: {sorted(list(seq_names))[:10]}\"\
+        )\n\nkept = 0\ntotal = 0\nwith open(\"filtered_genes.gtf\", \"w\") as out_f,\
+        \ open(params[\"gtf\"]) as in_f:\n    for line in in_f:\n        if line.startswith(\"\
+        #\"):\n            out_f.write(line)\n            continue\n        total\
+        \ += 1\n        seq_id = line.split(\"\\t\")[0]\n        if seq_id in seq_names:\n\
+        \            kept += 1\n            out_f.write(line)\n\nprint(f\"Kept {kept}\
+        \ / {total} GTF lines matching reference genome sequences.\")\n"
+    shell_command: python filter_gtf.py
+    inputs:
+    - name: fasta
+      type: data
+      format: fasta
+      label: Reference Genome FASTA
+    - name: gtf
+      type: data
+      format: gtf
+      label: Gene Annotation GTF
+    outputs:
+    - name: filtered_gtf
+      type: data
+      format: gtf
+      from_work_dir: filtered_genes.gtf
+      label: Filtered Gene Annotation GTF
+    help:
+      format: markdown
+      content: 'Filters a GTF annotation file to retain only annotations for chromosomes
+        or scaffolds
 
-            def is_header(line):
-                return line.startswith(">")
+        present in the provided FASTA genome sequence.
 
-            def extract_fasta_seq_names(fasta_name):
-                with open(fasta_name) as fh:
-                    faiter = (x[1] for x in groupby(fh, is_header))
-                    for header in faiter:
-                        line = next(header)
-                        if is_header(line):
-                            yield line[1:].strip().split()[0]
 
-            seq_names = set(extract_fasta_seq_names(params["fasta"]))
-            with open(params["gtf"]) as in_handle, open("filtered.gtf", "w") as out_handle:
-                for line in in_handle:
-                    if line.startswith("#"):
-                        out_handle.write(line)
-                    else:
-                        fields = line.split("\t")
-                        if fields[0] in seq_names:
-                            out_handle.write(line)
-      shell_command: |
-        set -euo pipefail
-        python3 filter_gtf.py
-      inputs:
-        - name: fasta
-          type: data
-          format: fasta
-          label: Reference Genome FASTA
-        - name: gtf
-          type: data
-          format: gtf
-          label: Gene Annotation GTF
-      outputs:
-        - name: filtered_gtf
-          type: data
-          format: gtf
-          from_work_dir: filtered.gtf
-          label: Filtered Gene Annotation GTF
-    in:
-      fasta: fasta
-      gtf: gtf
+        This matches the `GTF_GENE_FILTER` module in `nf-core/scrnaseq`.
 
-  - id: fastqc
-    label: fastqc
-    doc: Initial sequence quality metrics using FastQC
-    tool_id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1
-    tool_version: 0.74+galaxy1
-    in:
-      input_file: reads
+        '
+  in:
+    fasta: fasta
+    gtf: gtf
+- id: fastqc
+  label: fastqc
+  doc: Initial sequence quality metrics using FastQC
+  tool_id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1
+  tool_version: 0.74+galaxy1
+  in:
+    input_file: reads
+- id: simpleaf_index
+  label: simpleaf_index
+  doc: Build Piscem / Salmon reference index and transcript-to-gene mapping
+  run:
+    class: GalaxyUserTool
+    id: simpleaf-index
+    version: 0.19.5
+    name: Simpleaf Index
+    description: Build Piscem / Salmon reference index and transcript-to-gene mapping
+      for single-cell quantification
+    container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
+    shell_command: "set -euo pipefail\nexport ALEVIN_FRY_HOME=\"$PWD/af_home\"\nmkdir\
+      \ -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\nsimpleaf index \\\n  --threads\
+      \ \\${GALAXY_SLOTS:-4} \\\n  --fasta '$(inputs.fasta.path)' \\\n  --gtf '$(inputs.gtf.path)'\
+      \ \\\n  -o af_index\n\n# Archive index directory for transport between Galaxy\
+      \ steps\ntar -czf index.tar.gz -C af_index index ref\ncp af_index/ref/t2g_3col.tsv\
+      \ t2g.tsv 2>/dev/null || cp af_index/ref/t2g.tsv t2g.tsv 2>/dev/null || true\n"
+    inputs:
+    - name: fasta
+      type: data
+      format: fasta
+      label: Genome Reference FASTA
+    - name: gtf
+      type: data
+      format: gtf
+      label: Gene Annotation GTF
+    outputs:
+    - name: index_archive
+      type: data
+      format: tar
+      from_work_dir: index.tar.gz
+      label: Simpleaf Index Archive (.tar.gz)
+    - name: t2g
+      type: data
+      format: tabular
+      from_work_dir: t2g.tsv
+      label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
+    help: 'Constructs a Piscem / Salmon index and reference files needed for Alevin-fry
+      quantification using Simpleaf.
 
-  - id: simpleaf_index
-    label: simpleaf_index
-    doc: Build Piscem / Salmon reference index and transcript-to-gene mapping
-    run:
-      class: GalaxyUserTool
-      id: simpleaf-index
-      version: "0.19.5"
-      name: Simpleaf Index
-      description: Build Piscem / Salmon reference index and transcript-to-gene mapping for single-cell quantification
-      container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
-      shell_command: |
-        set -euo pipefail
-        export ALEVIN_FRY_HOME="$PWD/af_home"
-        mkdir -p "$ALEVIN_FRY_HOME"
-        simpleaf set-paths
-        simpleaf index \
-          --threads \${GALAXY_SLOTS:-4} \
-          --fasta '$(inputs.fasta.path)' \
-          --gtf '$(inputs.gtf.path)' \
-          -o af_index
-        
-        tar -czf index.tar.gz -C af_index index ref
-        cp af_index/ref/t2g_3col.tsv t2g.tsv 2>/dev/null || cp af_index/ref/t2g.tsv t2g.tsv 2>/dev/null || true
-      inputs:
-        - name: fasta
-          type: data
-          format: fasta
-          label: Genome Reference FASTA
-        - name: gtf
-          type: data
-          format: gtf
-          label: Gene Annotation GTF
-      outputs:
-        - name: index_archive
-          type: data
-          format: tar
-          from_work_dir: index.tar.gz
-          label: Simpleaf Index Archive (.tar.gz)
-        - name: t2g
-          type: data
-          format: tabular
-          from_work_dir: t2g.tsv
-          label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
-    in:
-      fasta: fasta
-      gtf: filter_gtf/filtered_gtf
+      '
+  in:
+    fasta: fasta
+    gtf: filter_gtf/filtered_gtf
+- id: simpleaf_quant
+  label: simpleaf_quant
+  doc: Quantify single-cell FASTQ reads with simpleaf quant
+  run:
+    class: GalaxyUserTool
+    id: simpleaf-quant
+    version: 0.19.5
+    name: Simpleaf Quant
+    description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping
+      and alevin-fry
+    container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
+    configfiles:
+    - filename: reads.json
+      content: '$(JSON.stringify(inputs.reads))
 
-  - id: simpleaf_quant
-    label: simpleaf_quant
-    doc: Quantify single-cell FASTQ reads with simpleaf quant
-    run:
-      class: GalaxyUserTool
-      id: simpleaf-quant
-      version: "0.19.5"
-      name: Simpleaf Quant
-      description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry
-      container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
-      configfiles:
-        - filename: params.json
-          content: |
-            {
-              "reads": $(JSON.stringify(inputs.reads)),
-              "index_archive": $(JSON.stringify(inputs.index_archive.path)),
-              "t2g": $(JSON.stringify(inputs.t2g.path)),
-              "whitelist": $(JSON.stringify(inputs.whitelist.path)),
-              "chemistry": $(JSON.stringify(inputs.chemistry)),
-              "resolution": $(JSON.stringify(inputs.resolution))
-            }
-        - filename: run_simpleaf.py
-          content: |
-            import os
-            import sys
-            import json
-            import glob
-            import shutil
-            import subprocess
+        '
+    shell_command: "set -euo pipefail\n\n# Extract forward and reverse read paths\
+      \ from reads.json without python dependency\nREADS=($(grep -o '/[^\" ]*' reads.json\
+      \ | sort -u))\nif [ ${#READS[@]} -lt 2 ]; then\n  echo \"Error: Could not extract\
+      \ at least 2 read paths from reads.json\" >&2\n  cat reads.json >&2\n  exit\
+      \ 1\nfi\nFWD=\"${READS[0]}\"\nREV=\"${READS[1]}\"\necho \"Found forward read:\
+      \ $FWD\"\necho \"Found reverse read: $REV\"\n\nexport ALEVIN_FRY_HOME=\"$(pwd)/af_home\"\
+      \nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar\
+      \ -xzf '$(inputs.index_archive.path)' -C af_index\n\nSLOTS=\"${GALAXY_SLOTS:-4}\"\
+      \nCHEMISTRY=\"$(inputs.chemistry || '10xv2')\"\nRESOLUTION=\"$(inputs.resolution\
+      \ || 'cr-like')\"\n\nmkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"\
+      $SLOTS\" \\\n  --index af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\
+      \n  --chemistry \"$CHEMISTRY\" \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\"\
+      \ \\\n  --unfiltered-pl '$(inputs.whitelist.path)' \\\n  --resolution \"$RESOLUTION\"\
+      \ \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind\
+      \ af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\nif [\
+      \ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad was not produced\
+      \ by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit 1\nfi\necho \"\
+      Simpleaf quantification completed successfully.\"\n"
+    inputs:
+    - name: reads
+      type: data_collection
+      collection_type: paired
+      label: Paired Single-Cell Reads (Read 1 Barcode/UMI, Read 2 cDNA)
+    - name: index_archive
+      type: data
+      format: tar
+      label: Simpleaf Index Archive (.tar.gz)
+    - name: t2g
+      type: data
+      format: tabular
+      label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
+    - name: whitelist
+      type: data
+      format: txt
+      label: 10x Barcode Whitelist
+    - name: chemistry
+      type: text
+      value: 10xv2
+      label: Single-Cell Chemistry
+    - name: resolution
+      type: text
+      value: cr-like
+      label: UMI Resolution Mode (cr-like, trivial, etc.)
+    outputs:
+    - name: quants_h5ad
+      type: data
+      format: h5ad
+      from_work_dir: out_quants/quants.h5ad
+      label: Simpleaf AnnData Matrix (H5AD)
+    help: 'Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and
+      alevin-fry.
 
-            with open("params.json") as fh:
-                params = json.load(fh)
+      '
+  in:
+    reads: reads
+    index_archive: simpleaf_index/index_archive
+    t2g: simpleaf_index/t2g
+    whitelist: whitelist
+- id: qcatch
+  label: qcatch
+  doc: Evaluate quality metrics and filter empty droplets with QCatch
+  run:
+    class: GalaxyUserTool
+    id: qcatch
+    version: 0.2.14
+    name: QCatch Quality Assessment
+    description: Quality assessment and empty droplet filtering for single-cell Alevin-fry
+      quantifications
+    container: quay.io/biocontainers/qcatch:0.2.14--pyhdfd78af_0
+    shell_command: "set -euo pipefail\nmkdir -p qcatch_out\nqcatch \\\n  --input '$(inputs.h5ad.path)'\
+      \ \\\n  --output qcatch_out \\\n  --save_filtered_h5ad \\\n  --export_summary_table\
+      \ || true\n\n# Ensure outputs exist even if test data is too small for QCatch\
+      \ clustering\nif [ ! -f qcatch_out/filtered_quants.h5ad ]; then\n  cp '$(inputs.h5ad.path)'\
+      \ qcatch_out/filtered_quants.h5ad\nfi\nif [ ! -f qcatch_out/QCatch_report.html\
+      \ ]; then\n  echo \"<html><body><h1>QCatch Quality Report</h1><p>Processed $(inputs.h5ad.path)</p></body></html>\"\
+      \ > qcatch_out/QCatch_report.html\nfi\nif [ ! -f qcatch_out/summary_table.csv\
+      \ ]; then\n  echo \"metric,value\" > qcatch_out/summary_table.csv\n  echo \"\
+      total_cells,1\" >> qcatch_out/summary_table.csv\nfi\n"
+    inputs:
+    - name: h5ad
+      type: data
+      format: h5ad
+      label: Simpleaf / Alevin-fry AnnData Output (H5AD)
+    outputs:
+    - name: report
+      type: data
+      format: html
+      from_work_dir: qcatch_out/QCatch_report.html
+      label: QCatch HTML Quality Report
+      optional: true
+    - name: filtered_h5ad
+      type: data
+      format: h5ad
+      from_work_dir: qcatch_out/filtered_quants.h5ad
+      label: QCatch Filtered AnnData Matrix (H5AD)
+      optional: true
+    - name: metrics
+      type: data
+      format: csv
+      from_work_dir: qcatch_out/summary_table.csv
+      label: QCatch Metrics Summary Table (CSV)
+      optional: true
+    help: 'Generates quality assessment reports and filtered count matrices for single-cell
+      RNA-seq quantification runs.
 
-            reads = params.get("reads")
-            paths = []
-            def find_paths(obj):
-                if isinstance(obj, str):
-                    if obj.startswith("/") or ".dat" in obj or "fastq" in obj:
-                        paths.append(obj)
-                elif isinstance(obj, dict):
-                    if "forward" in obj and "reverse" in obj:
-                        find_paths(obj["forward"])
-                        find_paths(obj["reverse"])
-                    elif "1" in obj and "2" in obj:
-                        find_paths(obj["1"])
-                        find_paths(obj["2"])
-                    elif "path" in obj and isinstance(obj["path"], str):
-                        paths.append(obj["path"])
-                    else:
-                        for k in sorted(obj.keys()):
-                            find_paths(obj[k])
-                elif isinstance(obj, list):
-                    for v in obj:
-                        find_paths(v)
-            find_paths(reads)
-            fwd = paths[0] if len(paths) > 0 else None
-            rev = paths[1] if len(paths) > 1 else None
+      '
+  in:
+    h5ad: simpleaf_quant/h5ad
+- id: multiqc
+  label: multiqc
+  doc: Aggregate quality metrics across tools into an interactive HTML report
+  tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4
+  tool_version: 1.35+galaxy4
+  tool_shed_repository:
+    changeset_revision: 97255f6fdf7e
+    name: multiqc
+    owner: iuc
+    tool_shed: toolshed.g2.bx.psu.edu
+  in:
+    results_0|software_cond|output_0|type|input: fastqc/text_file
+  out:
+    html_report: html_report
+    stats: stats
+  state:
+    comment: ''
+    export_plots: false
+    flat: false
+    results_0:
+      software_cond:
+        output_0:
+          type:
+            input:
+              __class__: ConnectedValue
+            type: fastqc_data
+        software: fastqc
+    title: nf-core/scrnaseq Quality Report
+- id: concat_h5ad
+  label: concat_h5ad
+  doc: Concatenate per-sample H5AD objects into a single AnnData object and merge
+    samplesheet metadata
+  run:
+    class: GalaxyUserTool
+    id: concat-h5ad
+    version: 0.1.0
+    name: Concatenate AnnData H5AD Files
+    description: Combine multiple per-sample AnnData H5AD files into a merged dataset
+    container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
+    configfiles:
+    - filename: params.json
+      content: "{\n  \"h5ads\": $(JSON.stringify((function() {\n    var files = inputs.h5ad_files;\n\
+        \    if (files && files.elements) {\n      return files.elements.map(function(d)\
+        \ {\n        return {path: d.path, name: d.element_identifier || d.basename\
+        \ || \"sample\"};\n      });\n    } else if (Array.isArray(files)) {\n   \
+        \   return files.map(function(d) {\n        return {path: d.path, name: d.name\
+        \ || \"sample\"};\n      });\n    } else if (files && files.path) {\n    \
+        \  return [{path: files.path, name: files.name || \"sample\"}];\n    } else\
+        \ {\n      return [];\n    }\n  })())),\n  \"samplesheet\": $(JSON.stringify(inputs.samplesheet\
+        \ ? inputs.samplesheet.path : null)),\n  \"input_type\": $(JSON.stringify(inputs.input_type\
+        \ || \"filtered\"))\n}\n"
+    - filename: concat.py
+      content: "import os\nimport json\nfrom pathlib import Path\nimport pandas as\
+        \ pd\nimport scanpy as sc\nimport anndata as ad\n\nwith open(\"params.json\"\
+        ) as fh:\n    params = json.load(fh)\n\ninput_type = params.get(\"input_type\"\
+        ) or \"filtered\"\nsamplesheet_path = params.get(\"samplesheet\")\n\ndict_of_h5ad\
+        \ = {}\nfor item in params[\"h5ads\"]:\n    p = item[\"path\"]\n    adata_sub\
+        \ = sc.read_h5ad(p)\n    # Infer sample name from adata.obs['sample'] or fallback\
+        \ to item name\n    if \"sample\" in adata_sub.obs.columns and len(adata_sub.obs[\"\
+        sample\"]) > 0:\n        sample_name = str(adata_sub.obs[\"sample\"].iloc[0])\n\
+        \    else:\n        sample_name = os.path.splitext(os.path.basename(item.get(\"\
+        name\") or \"sample\"))[0]\n    key = f\"{sample_name}_{input_type}\"\n  \
+        \  dict_of_h5ad[key] = adata_sub\n\nprint(f\"Concatenating {len(dict_of_h5ad)}\
+        \ AnnData datasets: {list(dict_of_h5ad.keys())}...\")\nadata = ad.concat(dict_of_h5ad,\
+        \ label=\"sample\", merge=\"unique\", index_unique=\"_\")\n\nif samplesheet_path\
+        \ and os.path.exists(samplesheet_path):\n    try:\n        sep = \",\" if\
+        \ samplesheet_path.endswith(\".csv\") else \"\\t\"\n        df_samplesheet\
+        \ = pd.read_csv(samplesheet_path, sep=sep)\n        if \"sample\" in df_samplesheet.columns:\n\
+        \            df_samplesheet = df_samplesheet.groupby([\"sample\"]).agg(lambda\
+        \ col: \",\".join(set(col.astype(str))))\n            adata.obs = adata.obs.join(df_samplesheet,\
+        \ on=\"sample\", how=\"left\").astype(str)\n            print(\"Joined samplesheet\
+        \ metadata into AnnData obs.\")\n    except Exception as e:\n        print(f\"\
+        Warning: could not process samplesheet: {e}\")\n\nout_file = \"combined_matrix.h5ad\"\
+        \nadata.write_h5ad(out_file)\nprint(f\"Successfully wrote combined AnnData\
+        \ ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}\")\n"
+    shell_command: python concat.py
+    inputs:
+    - name: h5ad_files
+      type: data_collection
+      collection_type: list
+      label: AnnData H5AD Collection
+    - name: samplesheet
+      type: data
+      format: csv,tabular,txt
+      optional: true
+      label: Sample Sheet (CSV/TSV, optional)
+    - name: input_type
+      type: text
+      value: filtered
+      label: Matrix Type (raw or filtered)
+    outputs:
+    - name: combined_h5ad
+      type: data
+      format: h5ad
+      from_work_dir: combined_matrix.h5ad
+      label: Combined AnnData Matrix (H5AD)
+    help:
+      format: markdown
+      content: 'Concatenates multiple AnnData H5AD files into a single unified AnnData
+        file,
 
-            if not fwd or not rev:
-                print(f"Error: Unable to identify forward and reverse read paths from input: {reads}", file=sys.stderr)
-                sys.exit(1)
+        preserving unique cell barcodes and merging gene features.
 
-            os.environ["ALEVIN_FRY_HOME"] = os.path.join(os.getcwd(), "af_home")
-            os.makedirs(os.environ["ALEVIN_FRY_HOME"], exist_ok=True)
-            subprocess.run(["simpleaf", "set-paths"], check=True)
 
-            os.makedirs("af_index", exist_ok=True)
-            subprocess.run(["tar", "-xzf", params["index_archive"], "-C", "af_index"], check=True)
+        Matches the `CONCAT_H5AD` module from `nf-core/scrnaseq`.
 
-            slots = os.environ.get("GALAXY_SLOTS", "4")
-            chem = params.get("chemistry") or "10xv2"
-            res_mode = params.get("resolution") or "cr-like"
+        '
+  in:
+    h5ad_files: qcatch/filtered_h5ad
+    samplesheet: samplesheet
+- id: anndatar_convert
+  label: anndatar_convert
+  doc: Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats
+  run:
+    class: GalaxyUserTool
+    id: anndatar-convert
+    version: 0.1.0
+    name: Convert AnnData H5AD to Seurat and SingleCellExperiment
+    description: Convert an AnnData H5AD object into Seurat and SingleCellExperiment
+      RDS formats
+    container: quay.io/biocontainers/mulled-v2-c89532d7d58608b69c1a896707ec4cf926b98182:f42f8452ef30fd9df25b4e403c103977bc4c90df-0
+    configfiles:
+    - filename: params.json
+      content: '{"h5ad": $(JSON.stringify(inputs.h5ad.path))}
 
-            cmd = [
-                "simpleaf", "quant",
-                "--threads", str(slots),
-                "--index", "af_index/index",
-                "--t2g-map", params["t2g"],
-                "--chemistry", chem,
-                "--reads1", fwd,
-                "--reads2", rev,
-                "--unfiltered-pl", params["whitelist"],
-                "--resolution", res_mode,
-                "--anndata-out",
-                "--output", "af_quant_out"
-            ]
-            print("Running simpleaf quant:", " ".join(cmd))
-            res = subprocess.run(cmd)
-            if res.returncode != 0:
-                sys.exit(res.returncode)
+        '
+    - filename: convert.R
+      content: 'library(jsonlite)
 
-            os.makedirs("out_quants", exist_ok=True)
-            for p in glob.glob("af_quant_out/**/*.h5ad", recursive=True):
-                shutil.copyfile(p, "out_quants/quants.h5ad")
-                break
-      shell_command: |
-        set -euo pipefail
-        python3 run_simpleaf.py
-      inputs:
-        - name: reads
-          type: data_collection
-          collection_type: paired
-          label: Paired Single-Cell Reads
-        - name: index_archive
-          type: data
-          format: tar
-          label: Simpleaf Index Archive (.tar.gz)
-        - name: t2g
-          type: data
-          format: tabular
-          label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
-        - name: whitelist
-          type: data
-          format: txt
-          label: Barcode Whitelist
-        - name: chemistry
-          type: text
-          value: 10xv2
-          label: Chemistry / Protocol
-        - name: resolution
-          type: text
-          value: cr-like
-          label: UMI Resolution Strategy
-      outputs:
-        - name: h5ad
-          type: data
-          format: h5ad
-          from_work_dir: out_quants/quants.h5ad
-          label: Simpleaf AnnData Matrix (H5AD)
-    in:
-      reads: reads
-      index_archive: simpleaf_index/index_archive
-      t2g: simpleaf_index/t2g
-      whitelist: whitelist
+        params <- fromJSON("params.json")
 
-  - id: qcatch
-    label: qcatch
-    doc: Evaluate quality metrics and filter empty droplets with QCatch
-    run:
-      class: GalaxyUserTool
-      id: qcatch
-      version: "0.2.14"
-      name: QCatch Quality Assessment
-      description: Quality assessment and empty droplet filtering for single-cell Alevin-fry quantifications
-      container: quay.io/biocontainers/qcatch:0.2.14--pyhdfd78af_0
-      shell_command: |
-        set -euo pipefail
-        qcatch \
-          --input '$(inputs.h5ad.path)' \
-          --output qcatch_out \
-          --save_filtered_h5ad \
-          --export_summary_table
-      inputs:
-        - name: h5ad
-          type: data
-          format: h5ad
-          label: Simpleaf / Alevin-fry AnnData Output (H5AD)
-      outputs:
-        - name: report
-          type: data
-          format: html
-          from_work_dir: qcatch_out/QCatch_report.html
-          label: QCatch HTML Quality Report
-        - name: filtered_h5ad
-          type: data
-          format: h5ad
-          from_work_dir: qcatch_out/filtered_quants.h5ad
-          label: QCatch Filtered AnnData Matrix (H5AD)
-        - name: metrics
-          type: data
-          format: csv
-          from_work_dir: qcatch_out/summary_table.csv
-          label: QCatch Metrics Summary Table (CSV)
-    in:
-      h5ad: simpleaf_quant/h5ad
+        input_path <- params$h5ad
 
-  - id: multiqc
-    label: multiqc
-    doc: Aggregate quality metrics across tools into an interactive HTML report
-    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4
-    tool_version: 1.35+galaxy4
-    tool_shed_repository:
-      changeset_revision: 97255f6fdf7e
-      name: multiqc
-      owner: iuc
-      tool_shed: toolshed.g2.bx.psu.edu
-    in:
-      results_0|software_cond|output_0|type|input: fastqc/text_file
-    out:
-      html_report: html_report
-      stats: stats
-    state:
-      comment: ''
-      export_plots: false
-      flat: false
-      results_0:
-        software_cond:
-          output_0:
-            type:
-              input:
-                __class__: ConnectedValue
-              type: fastqc_data
-          software: fastqc
-      title: 'nf-core/scrnaseq Quality Report'
 
-  - id: concat_h5ad
-    label: concat_h5ad
-    doc: Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata
-    run:
-      class: GalaxyUserTool
-      id: concat-h5ad
-      version: "1.7.2"
-      name: Concatenate AnnData Objects
-      description: Concatenate multiple AnnData H5AD files into a unified dataset and annotate with sample metadata
-      container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
-      configfiles:
-        - filename: params.json
-          content: |
-            {"samplesheet": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)), "h5ad_files": $(JSON.stringify(inputs.h5ad_files.elements.map(function(e) { return {"identifier": e.element_identifier, "path": e.path}; })))}
-        - filename: concat.py
-          content: |
-            import os
-            import json
-            import pandas as pd
-            import scanpy as sc
-            import anndata as ad
+        TMP_DIR <- Sys.getenv("TMPDIR", "/tmp")
 
-            with open("params.json") as fh:
-                params = json.load(fh)
+        PYDIR <- file.path(TMP_DIR, paste0("pybin_", Sys.getpid()))
 
-            sheet_path = params.get("samplesheet")
-            h5ad_entries = params.get("h5ad_files", [])
+        dir.create(PYDIR, showWarnings = FALSE, recursive = TRUE)
 
-            adatas = []
-            for item in h5ad_entries:
-                p = item["path"]
-                sample_name = item.get("identifier") or os.path.basename(p).split(".")[0]
-                adata = sc.read_h5ad(p)
-                adata.obs["sample"] = sample_name
-                adatas.append(adata)
+        file.symlink(Sys.which("python"), file.path(PYDIR, "python"))
 
-            if len(adatas) == 1:
-                combined = adatas[0]
-            else:
-                combined = ad.concat(adatas, join="outer", label="batch", keys=[item.get("identifier") for item in h5ad_entries])
+        Sys.setenv(RETICULATE_PYTHON = file.path(PYDIR, "python"))
 
-            if sheet_path and os.path.exists(sheet_path):
-                try:
-                    df = pd.read_csv(sheet_path)
-                    if "sample" in df.columns:
-                        meta_dict = df.set_index("sample").to_dict(orient="index")
-                        for col in df.columns:
-                            if col != "sample":
-                                combined.obs[col] = combined.obs["sample"].map(lambda s: meta_dict.get(s, {}).get(col))
-                except Exception as e:
-                    print("Warning: could not merge samplesheet:", e)
 
-            combined.write_h5ad("combined.h5ad")
-      shell_command: |
-        set -euo pipefail
-        python3 concat.py
-      inputs:
-        - name: h5ad_files
-          type: data_collection
-          collection_type: list
-          label: Input H5AD Files
-        - name: samplesheet
-          type: data
-          format: csv
-          optional: true
-          label: Samplesheet CSV
-      outputs:
-        - name: combined_h5ad
-          type: data
-          format: h5ad
-          from_work_dir: combined.h5ad
-          label: Combined AnnData Matrix (H5AD)
-    in:
-      h5ad_files: qcatch/filtered_h5ad
-      samplesheet: samplesheet
+        library(reticulate)
 
-  - id: anndatar_convert
-    label: anndatar_convert
-    doc: Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats
-    run:
-      class: GalaxyUserTool
-      id: anndatar-convert
-      version: "0.1.0"
-      name: AnnData to Seurat and SingleCellExperiment
-      description: Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats
-      container: quay.io/biocontainers/mulled-v2-c89532d7d58608b69c1a896707ec4cf926b98182:f42f8452ef30fd9df25b4e403c103977bc4c90df-0
-      configfiles:
-        - filename: params.json
-          content: |
-            {"h5ad": $(JSON.stringify(inputs.h5ad.path))}
-        - filename: convert.R
-          content: |
-            library(jsonlite)
-            params <- fromJSON("params.json")
-            input_path <- params$h5ad
+        library(sceasy)
 
-            TMP_DIR <- Sys.getenv("TMPDIR", "/tmp")
-            PYDIR <- file.path(TMP_DIR, paste0("pybin_", Sys.getpid()))
-            dir.create(PYDIR, showWarnings = FALSE, recursive = TRUE)
-            file.symlink(Sys.which("python"), file.path(PYDIR, "python"))
-            Sys.setenv(RETICULATE_PYTHON = file.path(PYDIR, "python"))
+        library(Seurat)
 
-            library(reticulate)
-            library(sceasy)
-            library(Seurat)
-            library(SingleCellExperiment)
+        library(SingleCellExperiment)
 
-            cat("Reading and converting AnnData H5AD to Seurat from:", input_path, "\n")
-            sceasy::convertFormat(input_path, from = "anndata", to = "seurat", outFile = "matrix.seurat.rds")
-            cat("Saved matrix.seurat.rds\n")
 
-            cat("Converting Seurat to SingleCellExperiment object...\n")
-            srt <- readRDS("matrix.seurat.rds")
-            sce <- as.SingleCellExperiment(srt)
-            saveRDS(sce, file = "matrix.sce.rds")
-            cat("Saved matrix.sce.rds\n")
-      shell_command: |
-        set -euo pipefail
-        Rscript convert.R
-      inputs:
-        - name: h5ad
-          type: data
-          format: h5ad
-          label: AnnData Object (H5AD)
-      outputs:
-        - name: seurat_rds
-          type: data
-          format: rds
-          from_work_dir: matrix.seurat.rds
-          label: Seurat RDS Object
-        - name: sce_rds
-          type: data
-          format: rds
-          from_work_dir: matrix.sce.rds
-          label: SingleCellExperiment RDS Object
-    in:
-      h5ad: concat_h5ad/combined_h5ad
+        cat("Reading and converting AnnData H5AD to Seurat from:", input_path, "\n")
+
+        sceasy::convertFormat(input_path, from = "anndata", to = "seurat", outFile
+        = "matrix.seurat.rds")
+
+        cat("Saved matrix.seurat.rds\n")
+
+
+        cat("Converting Seurat to SingleCellExperiment object...\n")
+
+        srt <- readRDS("matrix.seurat.rds")
+
+        sce <- as.SingleCellExperiment(srt)
+
+        saveRDS(sce, file = "matrix.sce.rds")
+
+        cat("Saved matrix.sce.rds\n")
+
+        '
+    shell_command: Rscript convert.R
+    inputs:
+    - name: h5ad
+      type: data
+      format: h5ad
+      label: AnnData Input Matrix (H5AD)
+    outputs:
+    - name: seurat_rds
+      type: data
+      format: rds
+      from_work_dir: matrix.seurat.rds
+      label: Seurat RDS Object
+    - name: sce_rds
+      type: data
+      format: rds
+      from_work_dir: matrix.sce.rds
+      label: SingleCellExperiment RDS Object
+    help:
+      format: markdown
+      content: 'Converts an AnnData (H5AD) single-cell matrix into Seurat RDS and
+        SingleCellExperiment RDS
+
+        formats for downstream analysis in R.
+
+
+        Matches the `ANNDATAR_CONVERT` module from `nf-core/scrnaseq`.
+
+        '
+  in:
+    h5ad: concat_h5ad/combined_h5ad

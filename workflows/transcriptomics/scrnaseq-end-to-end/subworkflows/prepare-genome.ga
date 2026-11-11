@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "dd99b255-f1cd-471d-8bfb-3ec9dda46cb3",
+  "uuid": "7a1adcfa-1536-4f82-879f-8c8ad0889b8d",
   "creator": [
     {
       "name": "nf-core",
@@ -153,7 +153,11 @@
             "from_work_dir": "filtered_genes.gtf",
             "label": "Filtered Gene Annotation GTF"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Filters a GTF annotation file to retain only annotations for chromosomes or scaffolds\npresent in the provided FASTA genome sequence.\n\nThis matches the `GTF_GENE_FILTER` module in `nf-core/scrnaseq`.\n"
+        }
       }
     }
   }

@@ -45,7 +45,28 @@ configfiles:
 
       setup_input(params["matrix"], "matrix.mtx")
       setup_input(params["barcodes"], "barcodes.tsv")
-      setup_input(params["features"], "features.tsv")
+
+      feat_src = params["features"]
+      with open(feat_src, "rb") as f:
+          is_gz = f.read(2) == b"\x1f\x8b"
+      if is_gz:
+          with gzip.open(feat_src, "rt") as f:
+              lines = f.readlines()
+      else:
+          with open(feat_src, "rt") as f:
+              lines = f.readlines()
+
+      first_cols = lines[0].strip().split("\t") if lines else []
+      if len(first_cols) == 1:
+          print("Detected 1-column features list (Kallisto/Bustools). Formatting into 10x 3-column format.")
+          temp_feat = "features_3col.tsv"
+          with open(temp_feat, "w") as f_out:
+              for l in lines:
+                  gid = l.strip()
+                  f_out.write(f"{gid}\t{gid}\tGene Expression\n")
+          setup_input(temp_feat, "features.tsv")
+      else:
+          setup_input(feat_src, "features.tsv")
 
       print(f"Reading 10x MTX from {mtx_dir} for sample {sample} ({input_type})...")
       adata = sc.read_10x_mtx(mtx_dir)
