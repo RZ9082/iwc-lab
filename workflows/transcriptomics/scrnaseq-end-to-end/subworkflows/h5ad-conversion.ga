@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "06048263-6228-48be-bf7f-1f7e294f431d",
+  "uuid": "644fca51-36a1-49b9-b3d5-7b77c8e4fd7c",
   "creator": [
     {
       "name": "nf-core",
@@ -33,16 +33,13 @@
     "0": {
       "id": 0,
       "name": "h5ad_files",
-      "type_": "data_collection_input",
+      "type": "data_collection_input",
       "label": "h5ad_files",
       "annotation": "Collection of per-sample AnnData objects in H5AD format",
-      "tool_state": {
-        "name": "h5ad_files",
-        "collection_type": "list"
-      },
+      "tool_state": "{\"name\": \"h5ad_files\", \"collection_type\": \"list\"}",
       "position": {
-        "top": 0,
-        "left": 0
+        "left": 50,
+        "top": 50
       },
       "input_connections": {},
       "inputs": [
@@ -58,18 +55,13 @@
     "1": {
       "id": 1,
       "name": "samplesheet",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "samplesheet",
       "annotation": "Sample metadata table in CSV format",
-      "tool_state": {
-        "name": "samplesheet",
-        "format": [
-          "csv"
-        ]
-      },
+      "tool_state": "{\"name\": \"samplesheet\", \"format\": [\"csv\"]}",
       "position": {
-        "top": 10,
-        "left": 10
+        "left": 50,
+        "top": 290
       },
       "input_connections": {},
       "inputs": [
@@ -85,15 +77,13 @@
     "2": {
       "id": 2,
       "name": "Concatenate AnnData Objects",
-      "type_": "tool",
+      "type": "tool",
       "label": "concat_h5ad",
       "annotation": "Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 20,
-        "left": 20
+        "left": 430,
+        "top": 50
       },
       "input_connections": {
         "h5ad_files": [
@@ -164,15 +154,13 @@
     "3": {
       "id": 3,
       "name": "AnnData to Seurat and SingleCellExperiment",
-      "type_": "tool",
+      "type": "tool",
       "label": "anndatar_convert",
       "annotation": "Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 30,
-        "left": 30
+        "left": 810,
+        "top": 50
       },
       "input_connections": {
         "h5ad": [

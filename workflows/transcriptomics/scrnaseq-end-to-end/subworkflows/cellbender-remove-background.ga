@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "6412a861-0184-4002-ac5b-356bca4fdf60",
+  "uuid": "42b640c2-03d0-40fa-a1a4-9f827de136c1",
   "creator": [
     {
       "name": "nf-core",
@@ -33,18 +33,13 @@
     "0": {
       "id": 0,
       "name": "raw_h5ad",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "raw_h5ad",
       "annotation": "Raw single-cell gene expression matrix in H5AD format",
-      "tool_state": {
-        "name": "raw_h5ad",
-        "format": [
-          "h5ad"
-        ]
-      },
+      "tool_state": "{\"name\": \"raw_h5ad\", \"format\": [\"h5ad\"]}",
       "position": {
-        "top": 0,
-        "left": 0
+        "left": 50,
+        "top": 50
       },
       "input_connections": {},
       "inputs": [
@@ -60,17 +55,13 @@
     "1": {
       "id": 1,
       "name": "fpr",
-      "type_": "parameter_input",
+      "type": "parameter_input",
       "label": "fpr",
       "annotation": "Nominal target false positive rate for CellBender",
-      "tool_state": {
-        "name": "fpr",
-        "parameter_type": "float",
-        "default": 0.01
-      },
+      "tool_state": "{\"name\": \"fpr\", \"parameter_type\": \"float\", \"default\": 0.01}",
       "position": {
-        "top": 10,
-        "left": 10
+        "left": 50,
+        "top": 290
       },
       "input_connections": {},
       "inputs": [
@@ -86,17 +77,13 @@
     "2": {
       "id": 2,
       "name": "epochs",
-      "type_": "parameter_input",
+      "type": "parameter_input",
       "label": "epochs",
       "annotation": "Training epochs for CellBender deep generative model",
-      "tool_state": {
-        "name": "epochs",
-        "parameter_type": "integer",
-        "default": 150
-      },
+      "tool_state": "{\"name\": \"epochs\", \"parameter_type\": \"integer\", \"default\": 150}",
       "position": {
-        "top": 20,
-        "left": 20
+        "left": 50,
+        "top": 530
       },
       "input_connections": {},
       "inputs": [
@@ -112,15 +99,13 @@
     "3": {
       "id": 3,
       "name": "CellBender Remove Background",
-      "type_": "tool",
+      "type": "tool",
       "label": "cellbender",
       "annotation": "Train deep generative model to estimate ambient RNA profile and identify cell-containing droplets",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 30,
-        "left": 30
+        "left": 430,
+        "top": 50
       },
       "input_connections": {
         "h5ad": [
@@ -166,7 +151,7 @@
         "version": "0.3.2",
         "description": "Eliminate ambient RNA and empty droplets from raw single-cell H5AD count matrices",
         "container": "quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0",
-        "shell_command": "set -euo pipefail\ncellbender remove-background \\\n  --input '$(inputs.h5ad.path)' \\\n  --output cellbender_out.h5 \\\n  --fpr $(inputs.fpr) \\\n  --epochs $(inputs.epochs) \\\n  --cpu-threads \\${GALAXY_SLOTS:-4}\n",
+        "shell_command": "set -euo pipefail\ncellbender remove-background \\\n  --input '$(inputs.h5ad.path)' \\\n  --output cellbender_out.h5 \\\n  --fpr $(inputs.fpr || 0.01) \\\n  --epochs $(inputs.epochs || 150) \\\n  --cpu-threads \\${GALAXY_SLOTS:-4}\n",
         "inputs": [
           {
             "name": "h5ad",
@@ -177,13 +162,13 @@
           {
             "name": "fpr",
             "type": "float",
-            "default": 0.01,
+            "optional": true,
             "label": "Nominal False Positive Rate (FPR)"
           },
           {
             "name": "epochs",
             "type": "integer",
-            "default": 150,
+            "optional": true,
             "label": "Number of Training Epochs"
           }
         ],
@@ -222,15 +207,13 @@
     "4": {
       "id": 4,
       "name": "Filter AnnData by Barcodes",
-      "type_": "tool",
+      "type": "tool",
       "label": "filter_barcodes",
       "annotation": "Subset AnnData matrix using CellBender verified barcodes",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 40,
-        "left": 40
+        "left": 810,
+        "top": 50
       },
       "input_connections": {
         "h5ad": [

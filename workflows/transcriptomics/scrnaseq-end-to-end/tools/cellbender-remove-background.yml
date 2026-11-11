@@ -9,8 +9,8 @@ shell_command: |
   cellbender remove-background \
     --input '$(inputs.h5ad.path)' \
     --output cellbender_out.h5 \
-    --fpr $(inputs.fpr) \
-    --epochs $(inputs.epochs) \
+    --fpr $(inputs.fpr || 0.01) \
+    --epochs $(inputs.epochs || 150) \
     --cpu-threads \${GALAXY_SLOTS:-4}
 inputs:
   - name: h5ad
@@ -19,11 +19,11 @@ inputs:
     label: Raw Unfiltered AnnData Matrix (H5AD)
   - name: fpr
     type: float
-    default: 0.01
+    optional: true
     label: Nominal False Positive Rate (FPR)
   - name: epochs
     type: integer
-    default: 150
+    optional: true
     label: Number of Training Epochs
 outputs:
   - name: barcodes

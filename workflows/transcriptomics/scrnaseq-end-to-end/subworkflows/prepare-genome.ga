@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "977e89b5-1349-44e4-8b41-cfcfe13e1658",
+  "uuid": "348e85fc-6a6e-4176-8209-7e3f002d86b7",
   "creator": [
     {
       "name": "nf-core",
@@ -33,18 +33,13 @@
     "0": {
       "id": 0,
       "name": "genome_fasta",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "genome_fasta",
       "annotation": "Reference genome FASTA sequence file",
-      "tool_state": {
-        "name": "genome_fasta",
-        "format": [
-          "fasta"
-        ]
-      },
+      "tool_state": "{\"name\": \"genome_fasta\", \"format\": [\"fasta\"]}",
       "position": {
-        "top": 0,
-        "left": 0
+        "left": 50,
+        "top": 50
       },
       "input_connections": {},
       "inputs": [
@@ -65,18 +60,13 @@
     "1": {
       "id": 1,
       "name": "gtf",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "gtf",
       "annotation": "Gene annotation file in GTF format",
-      "tool_state": {
-        "name": "gtf",
-        "format": [
-          "gtf"
-        ]
-      },
+      "tool_state": "{\"name\": \"gtf\", \"format\": [\"gtf\"]}",
       "position": {
-        "top": 10,
-        "left": 10
+        "left": 50,
+        "top": 290
       },
       "input_connections": {},
       "inputs": [
@@ -92,15 +82,13 @@
     "2": {
       "id": 2,
       "name": "Filter GTF by Genome Sequences",
-      "type_": "tool",
+      "type": "tool",
       "label": "filter_gtf",
       "annotation": "Filter GTF file to include only annotations on sequences present in reference FASTA",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 20,
-        "left": 20
+        "left": 430,
+        "top": 50
       },
       "input_connections": {
         "fasta": [

@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "f7a91532-fa2a-4277-97c3-45be73df912e",
+  "uuid": "b3d2f560-8a62-4c80-8c27-b0a78f376233",
   "creator": [
     {
       "name": "nf-core",
@@ -33,16 +33,13 @@
     "0": {
       "id": 0,
       "name": "reads",
-      "type_": "data_collection_input",
+      "type": "data_collection_input",
       "label": "reads",
       "annotation": "Paired-end single-cell FASTQ reads (Read 1 barcode/UMI, Read 2 cDNA)",
-      "tool_state": {
-        "name": "reads",
-        "collection_type": "paired"
-      },
+      "tool_state": "{\"name\": \"reads\", \"collection_type\": \"paired\"}",
       "position": {
-        "top": 0,
-        "left": 0
+        "left": 50,
+        "top": 50
       },
       "input_connections": {},
       "inputs": [
@@ -58,18 +55,13 @@
     "1": {
       "id": 1,
       "name": "fasta",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "fasta",
       "annotation": "Reference genome FASTA sequence file",
-      "tool_state": {
-        "name": "fasta",
-        "format": [
-          "fasta"
-        ]
-      },
+      "tool_state": "{\"name\": \"fasta\", \"format\": [\"fasta\"]}",
       "position": {
-        "top": 10,
-        "left": 10
+        "left": 50,
+        "top": 290
       },
       "input_connections": {},
       "inputs": [
@@ -85,18 +77,13 @@
     "2": {
       "id": 2,
       "name": "gtf",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "gtf",
       "annotation": "Gene annotation file in GTF format",
-      "tool_state": {
-        "name": "gtf",
-        "format": [
-          "gtf"
-        ]
-      },
+      "tool_state": "{\"name\": \"gtf\", \"format\": [\"gtf\"]}",
       "position": {
-        "top": 20,
-        "left": 20
+        "left": 50,
+        "top": 530
       },
       "input_connections": {},
       "inputs": [
@@ -112,17 +99,13 @@
     "3": {
       "id": 3,
       "name": "technology",
-      "type_": "parameter_input",
+      "type": "parameter_input",
       "label": "technology",
       "annotation": "Barcode chemistry (e.g. 10XV2, 10XV3, DROPSEQ)",
-      "tool_state": {
-        "name": "technology",
-        "parameter_type": "text",
-        "default": "10XV2"
-      },
+      "tool_state": "{\"name\": \"technology\", \"parameter_type\": \"text\", \"default\": \"10XV2\"}",
       "position": {
-        "top": 30,
-        "left": 30
+        "left": 50,
+        "top": 770
       },
       "input_connections": {},
       "inputs": [
@@ -138,17 +121,13 @@
     "4": {
       "id": 4,
       "name": "workflow_mode",
-      "type_": "parameter_input",
+      "type": "parameter_input",
       "label": "workflow_mode",
       "annotation": "Kallisto quantification mode (standard, lamanno, nucleus)",
-      "tool_state": {
-        "name": "workflow_mode",
-        "parameter_type": "text",
-        "default": "standard"
-      },
+      "tool_state": "{\"name\": \"workflow_mode\", \"parameter_type\": \"text\", \"default\": \"standard\"}",
       "position": {
-        "top": 40,
-        "left": 40
+        "left": 50,
+        "top": 1010
       },
       "input_connections": {},
       "inputs": [
@@ -164,15 +143,13 @@
     "5": {
       "id": 5,
       "name": "Kallisto-Bustools Reference",
-      "type_": "tool",
+      "type": "tool",
       "label": "kb_ref",
       "annotation": "Build kallisto index and transcript-to-gene mapping from genome FASTA and GTF",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 50,
-        "left": 50
+        "left": 430,
+        "top": 50
       },
       "input_connections": {
         "fasta": [
@@ -263,15 +240,13 @@
     "6": {
       "id": 6,
       "name": "Kallisto-Bustools Count",
-      "type_": "tool",
+      "type": "tool",
       "label": "kb_count",
       "annotation": "Quantify single-cell FASTQ reads against kallisto index",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 60,
-        "left": 60
+        "left": 810,
+        "top": 50
       },
       "input_connections": {
         "reads": [

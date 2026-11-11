@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "1a39bc37-17bf-4099-9c58-deb8255ae342",
+  "uuid": "1c36dc68-28f9-4d27-a37e-accf9ec5524a",
   "creator": [
     {
       "name": "nf-core",
@@ -38,19 +38,13 @@
     "0": {
       "id": 0,
       "name": "reads",
-      "type_": "data_collection_input",
+      "type": "data_collection_input",
       "label": "reads",
       "annotation": "FASTQ collection containing cell barcode and UMI (Read 1) paired with cDNA read (Read 2)",
-      "tool_state": {
-        "name": "reads",
-        "format": [
-          "fastqsanger.gz"
-        ],
-        "collection_type": "list:paired"
-      },
+      "tool_state": "{\"name\": \"reads\", \"format\": [\"fastqsanger.gz\"], \"collection_type\": \"list:paired\"}",
       "position": {
-        "top": 0,
-        "left": 0
+        "left": 50,
+        "top": 50
       },
       "input_connections": {},
       "inputs": [
@@ -66,18 +60,13 @@
     "1": {
       "id": 1,
       "name": "fasta",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "fasta",
       "annotation": "Reference genome sequence in FASTA format",
-      "tool_state": {
-        "name": "fasta",
-        "format": [
-          "fasta"
-        ]
-      },
+      "tool_state": "{\"name\": \"fasta\", \"format\": [\"fasta\"]}",
       "position": {
-        "top": 10,
-        "left": 10
+        "left": 50,
+        "top": 290
       },
       "input_connections": {},
       "inputs": [
@@ -93,18 +82,13 @@
     "2": {
       "id": 2,
       "name": "gtf",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "gtf",
       "annotation": "Reference gene annotation file in GTF format",
-      "tool_state": {
-        "name": "gtf",
-        "format": [
-          "gtf"
-        ]
-      },
+      "tool_state": "{\"name\": \"gtf\", \"format\": [\"gtf\"]}",
       "position": {
-        "top": 20,
-        "left": 20
+        "left": 50,
+        "top": 530
       },
       "input_connections": {},
       "inputs": [
@@ -120,18 +104,13 @@
     "3": {
       "id": 3,
       "name": "whitelist",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "whitelist",
       "annotation": "Whitelist of known cell barcodes",
-      "tool_state": {
-        "name": "whitelist",
-        "format": [
-          "txt"
-        ]
-      },
+      "tool_state": "{\"name\": \"whitelist\", \"format\": [\"txt\"]}",
       "position": {
-        "top": 30,
-        "left": 30
+        "left": 50,
+        "top": 770
       },
       "input_connections": {},
       "inputs": [
@@ -147,19 +126,13 @@
     "4": {
       "id": 4,
       "name": "samplesheet",
-      "type_": "data_input",
+      "type": "data_input",
       "label": "samplesheet",
       "annotation": "Optional samplesheet (CSV/TSV) containing sample metadata to merge into AnnData",
-      "tool_state": {
-        "name": "samplesheet",
-        "optional": true,
-        "format": [
-          "csv,tabular,txt"
-        ]
-      },
+      "tool_state": "{\"name\": \"samplesheet\", \"optional\": true, \"format\": [\"csv,tabular,txt\"]}",
       "position": {
-        "top": 40,
-        "left": 40
+        "left": 50,
+        "top": 1010
       },
       "input_connections": {},
       "inputs": [
@@ -175,15 +148,13 @@
     "5": {
       "id": 5,
       "name": "Filter GTF by Genome Sequences",
-      "type_": "tool",
+      "type": "tool",
       "label": "filter_gtf",
       "annotation": "Filter GTF file to include only annotations on sequences present in reference FASTA",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 50,
-        "left": 50
+        "left": 430,
+        "top": 50
       },
       "input_connections": {
         "fasta": [
@@ -254,17 +225,15 @@
     "6": {
       "id": 6,
       "name": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
-      "type_": "tool",
+      "type": "tool",
       "label": "fastqc",
       "annotation": "Initial sequence quality metrics using FastQC",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
       "tool_version": "0.74+galaxy1",
       "position": {
-        "top": 60,
-        "left": 60
+        "left": 430,
+        "top": 290
       },
       "input_connections": {
         "input_file": [
@@ -287,15 +256,13 @@
     "7": {
       "id": 7,
       "name": "Simpleaf Index",
-      "type_": "tool",
+      "type": "tool",
       "label": "simpleaf_index",
       "annotation": "Build Piscem / Salmon reference index and transcript-to-gene mapping",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 70,
-        "left": 70
+        "left": 810,
+        "top": 50
       },
       "input_connections": {
         "fasta": [
@@ -358,15 +325,13 @@
     "8": {
       "id": 8,
       "name": "Simpleaf Quant",
-      "type_": "tool",
+      "type": "tool",
       "label": "simpleaf_quant",
       "annotation": "Quantify single-cell FASTQ reads with simpleaf quant",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 80,
-        "left": 80
+        "left": 1190,
+        "top": 50
       },
       "input_connections": {
         "reads": [
@@ -446,15 +411,13 @@
     "9": {
       "id": 9,
       "name": "QCatch Quality Assessment",
-      "type_": "tool",
+      "type": "tool",
       "label": "qcatch",
       "annotation": "Evaluate quality metrics and filter empty droplets with QCatch",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 90,
-        "left": 90
+        "left": 1570,
+        "top": 50
       },
       "input_connections": {
         "h5ad": [
@@ -521,17 +484,15 @@
     "10": {
       "id": 10,
       "name": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
-      "type_": "tool",
+      "type": "tool",
       "label": "multiqc",
       "annotation": "Aggregate quality metrics across tools into an interactive HTML report",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
       "tool_version": "1.35+galaxy4",
       "position": {
-        "top": 100,
-        "left": 100
+        "left": 810,
+        "top": 290
       },
       "input_connections": {
         "results_0|software_cond|output_0|type|input": [
@@ -550,7 +511,7 @@
         }
       ],
       "post_job_actions": {},
-      "in_": {
+      "in": {
         "results_0|software_cond|software": {
           "default": "fastqc"
         }
@@ -559,15 +520,13 @@
     "11": {
       "id": 11,
       "name": "Concatenate AnnData Objects",
-      "type_": "tool",
+      "type": "tool",
       "label": "concat_h5ad",
       "annotation": "Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 110,
-        "left": 110
+        "left": 1950,
+        "top": 50
       },
       "input_connections": {
         "h5ad_files": [
@@ -639,15 +598,13 @@
     "12": {
       "id": 12,
       "name": "AnnData to Seurat and SingleCellExperiment",
-      "type_": "tool",
+      "type": "tool",
       "label": "anndatar_convert",
       "annotation": "Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats",
-      "tool_state": {
-        "__page__": 0
-      },
+      "tool_state": "{\"__page__\": 0}",
       "position": {
-        "top": 120,
-        "left": 120
+        "left": 2330,
+        "top": 50
       },
       "input_connections": {
         "h5ad": [
