@@ -491,7 +491,7 @@
         "configfiles": [
           {
             "filename": "params.json",
-            "content": "{\n  \"h5ads\": $(JSON.stringify(inputs.h5ad_files.map(function(d) {\n    return {path: d.path, name: d.name || \"sample\"};\n  }))),\n  \"samplesheet\": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)),\n  \"input_type\": $(JSON.stringify(inputs.input_type || \"filtered\"))\n}\n"
+            "content": "{\n  \"h5ads\": $(JSON.stringify((function() {\n    var files = inputs.h5ad_files;\n    if (files && files.elements) {\n      return files.elements.map(function(d) {\n        return {path: d.path, name: d.element_identifier || d.basename || \"sample\"};\n      });\n    } else if (Array.isArray(files)) {\n      return files.map(function(d) {\n        return {path: d.path, name: d.name || \"sample\"};\n      });\n    } else if (files && files.path) {\n      return [{path: files.path, name: files.name || \"sample\"}];\n    } else {\n      return [];\n    }\n  })())),\n  \"samplesheet\": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)),\n  \"input_type\": $(JSON.stringify(inputs.input_type || \"filtered\"))\n}\n"
           },
           {
             "filename": "concat.py",
@@ -502,10 +502,9 @@
         "inputs": [
           {
             "name": "h5ad_files",
-            "type": "data",
-            "format": "h5ad",
-            "multiple": true,
-            "label": "AnnData H5AD Files"
+            "type": "data_collection",
+            "collection_type": "list",
+            "label": "AnnData H5AD Collection"
           },
           {
             "name": "samplesheet",

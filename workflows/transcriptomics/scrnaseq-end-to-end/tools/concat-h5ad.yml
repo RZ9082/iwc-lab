@@ -8,9 +8,22 @@ configfiles:
   - filename: params.json
     content: |
       {
-        "h5ads": $(JSON.stringify(inputs.h5ad_files.map(function(d) {
-          return {path: d.path, name: d.name || "sample"};
-        }))),
+        "h5ads": $(JSON.stringify((function() {
+          var files = inputs.h5ad_files;
+          if (files && files.elements) {
+            return files.elements.map(function(d) {
+              return {path: d.path, name: d.element_identifier || d.basename || "sample"};
+            });
+          } else if (Array.isArray(files)) {
+            return files.map(function(d) {
+              return {path: d.path, name: d.name || "sample"};
+            });
+          } else if (files && files.path) {
+            return [{path: files.path, name: files.name || "sample"}];
+          } else {
+            return [];
+          }
+        })())),
         "samplesheet": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)),
         "input_type": $(JSON.stringify(inputs.input_type || "filtered"))
       }
@@ -61,10 +74,9 @@ configfiles:
 shell_command: python concat.py
 inputs:
   - name: h5ad_files
-    type: data
-    format: h5ad
-    multiple: true
-    label: AnnData H5AD Files
+    type: data_collection
+    collection_type: list
+    label: AnnData H5AD Collection
   - name: samplesheet
     type: data
     format: csv,tabular,txt
