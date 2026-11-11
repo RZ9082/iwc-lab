@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "7556b9d0-86ac-41ac-a8c9-dc6b6f72876f",
+  "uuid": "b81773ba-e2f8-4c26-bd30-b1c3715d7b20",
   "creator": [
     {
       "name": "nf-core",
@@ -602,7 +602,7 @@
       "type": "tool",
       "label": "multiqc",
       "annotation": "Aggregate MultiQC report summarizing FastQC read quality and STARsolo alignment statistics",
-      "tool_state": "{\"__page__\": 0, \"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results_0\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"log\"}}, \"output_1\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"reads_per_gene\"}}, \"software\": \"rgrnastar\"}}, \"results_1\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"fastqc_data\"}}, \"software\": \"fastqc\"}}, \"title\": \"nf-core/scrnaseq Quality Report\"}",
+      "tool_state": "{\"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results\": [{\"__index__\": 0, \"software_cond\": {\"software\": \"star\", \"__current_case__\": 29, \"output\": [{\"__index__\": 0, \"type\": {\"type\": \"log\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"type\": {\"type\": \"genecounts\", \"__current_case__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}}}]}}, {\"__index__\": 1, \"software_cond\": {\"software\": \"fastqc\", \"__current_case__\": 9, \"output\": [{\"__index__\": 0, \"type\": \"data\", \"input\": {\"__class__\": \"ConnectedValue\"}}]}}], \"title\": \"nf-core/scrnaseq Quality Report\", \"__page__\": 0}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
       "tool_version": "1.35+galaxy4",
       "tool_shed_repository": {
@@ -628,7 +628,7 @@
             "output_name": "reads_per_gene"
           }
         ],
-        "results_1|software_cond|output_0|type|input": [
+        "results_1|software_cond|output_0|input": [
           {
             "id": 6,
             "output_name": "text_file"

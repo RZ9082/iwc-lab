@@ -178,49 +178,85 @@ steps:
 
   - id: starsolo
     label: starsolo
-    doc: Single-cell RNA-seq alignment, barcode demultiplexing, and quantification
+    doc: Single-cell RNA-seq alignment, barcode error correction, and gene quantification with STARsolo
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.11b+galaxy3
     tool_version: 2.7.11b+galaxy3
+    tool_shed_repository:
+      changeset_revision: 9b1940be9da1
+      name: rna_starsolo
+      owner: iuc
+      tool_shed: toolshed.g2.bx.psu.edu
     in:
       refGenomeSource|genomeFastaFiles: fasta
-      refGenomeSource|gene_model: filter_gtf/filtered_gtf
+      refGenomeSource|sjdbGTFfile: filter_gtf/filtered_gtf
       sc|input_types|input_collection: reads
       sc|soloCBwhitelist: barcode_whitelist
+    out:
+      output_matrix: output_matrix
+      output_barcodes: output_barcodes
+      output_genes: output_genes
+      output_matrix_filtered: output_matrix_filtered
+      output_barcodes_filtered: output_barcodes_filtered
+      output_genes_filtered: output_genes_filtered
+      output_stats: output_stats
+      output_log: output_log
+      reads_per_gene: reads_per_gene
     state:
+      algo:
+        params:
+          settingsType: default
+      chimOutType: ''
+      outWig:
+        outWigStrand: 'false'
+        outWigType: None
       refGenomeSource:
-        gene_model:
-          $link: filter_gtf/filtered_gtf
+        geneSource: history
         genomeFastaFiles:
-          $link: fasta
-        genomeSAindexNbases: 4
+          __class__: ConnectedValue
+        genomeSAindexNbases: 12
+        sjdbGTFfeatureExon: exon
+        sjdbGTFfile:
+          __class__: ConnectedValue
         sjdbOverhang: 100
-        source: history
       sc:
         input_types:
           input_collection:
-            $link: reads
+            __class__: ConnectedValue
           use: list_paired
+        params:
+          chemistry: Cv2
         soloBarcodeReadLength: true
-        soloCBlen: 16
-        soloCBstart: 1
+        soloCBmatchWLtype: 1MM_multi
         soloCBwhitelist:
-          $link: barcode_whitelist
-        soloFeatures:
-          - Gene
-        soloType: CB_UMI_Simple
-        soloUMIlen: 10
-        soloUMIstart: 17
+          __class__: ConnectedValue
+        solo_type: CB_UMI_Simple
         umidedup:
           soloUMIdedup: 1MM_CR
-          soloUMIfiltering: MultiGeneUMI_CR
-      solo_type:
-        outSAMtype: None
-        solo_output:
-          - unfiltered
-          - filtered
-          - summary
-      twopass:
-        twopassMode: Basic
+          soloUMIfiltering: '-'
+      solo:
+        filter:
+          filter_type: cellranger2
+          n_expected: 5000
+          max_perc: 0.99
+          max_min_ratio: 10.0
+          output_raw: true
+        outSAMattributes:
+          - NH
+          - HI
+          - AS
+          - nM
+          - GX
+          - GN
+          - CB
+          - UB
+        outSAMmapqUnique: 60
+        outSAMunmapped: false
+        quantModeGene: true
+        soloFeatures: Gene$
+        soloOutFormatFeaturesGeneField3: Gene Expression
+        soloStrand: Forward
+        wasp_conditional:
+          waspOutputMode: ''
 
   - id: mtx_to_h5ad
     label: mtx_to_h5ad

@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "e6fe9daf-9bc2-4e5d-af44-bc5ee3ddf4ee",
+  "uuid": "264b3251-0946-4d0f-85bc-b44c16311c2f",
   "creator": [
     {
       "name": "nf-core",
@@ -258,10 +258,16 @@
       "name": "toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.11b+galaxy3",
       "type": "tool",
       "label": "starsolo",
-      "annotation": "Single-cell RNA-seq alignment, barcode demultiplexing, and quantification",
-      "tool_state": "{\"__page__\": 0, \"refGenomeSource\": {\"gene_model\": {\"__class__\": \"ConnectedValue\"}, \"genomeFastaFiles\": {\"__class__\": \"ConnectedValue\"}, \"genomeSAindexNbases\": 4, \"sjdbOverhang\": 100, \"source\": \"history\"}, \"sc\": {\"input_types\": {\"input_collection\": {\"__class__\": \"ConnectedValue\"}, \"use\": \"list_paired\"}, \"soloBarcodeReadLength\": true, \"soloCBlen\": 16, \"soloCBstart\": 1, \"soloCBwhitelist\": {\"__class__\": \"ConnectedValue\"}, \"soloFeatures\": [\"Gene\"], \"soloType\": \"CB_UMI_Simple\", \"soloUMIlen\": 10, \"soloUMIstart\": 17, \"umidedup\": {\"soloUMIdedup\": \"1MM_CR\", \"soloUMIfiltering\": \"MultiGeneUMI_CR\"}}, \"solo_type\": {\"outSAMtype\": \"None\", \"solo_output\": [\"unfiltered\", \"filtered\", \"summary\"]}, \"twopass\": {\"twopassMode\": \"Basic\"}}",
+      "annotation": "Single-cell RNA-seq alignment, barcode error correction, and gene quantification with STARsolo",
+      "tool_state": "{\"__page__\": 0, \"algo\": {\"params\": {\"settingsType\": \"default\"}}, \"chimOutType\": \"\", \"outWig\": {\"outWigStrand\": \"false\", \"outWigType\": \"None\"}, \"refGenomeSource\": {\"geneSource\": \"history\", \"genomeFastaFiles\": {\"__class__\": \"ConnectedValue\"}, \"genomeSAindexNbases\": 12, \"sjdbGTFfeatureExon\": \"exon\", \"sjdbGTFfile\": {\"__class__\": \"ConnectedValue\"}, \"sjdbOverhang\": 100}, \"sc\": {\"input_types\": {\"input_collection\": {\"__class__\": \"ConnectedValue\"}, \"use\": \"list_paired\"}, \"params\": {\"chemistry\": \"Cv2\"}, \"soloBarcodeReadLength\": true, \"soloCBmatchWLtype\": \"1MM_multi\", \"soloCBwhitelist\": {\"__class__\": \"ConnectedValue\"}, \"solo_type\": \"CB_UMI_Simple\", \"umidedup\": {\"soloUMIdedup\": \"1MM_CR\", \"soloUMIfiltering\": \"-\"}}, \"solo\": {\"filter\": {\"filter_type\": \"cellranger2\", \"n_expected\": 5000, \"max_perc\": 0.99, \"max_min_ratio\": 10.0, \"output_raw\": true}, \"outSAMattributes\": [\"NH\", \"HI\", \"AS\", \"nM\", \"GX\", \"GN\", \"CB\", \"UB\"], \"outSAMmapqUnique\": 60, \"outSAMunmapped\": false, \"quantModeGene\": true, \"soloFeatures\": \"Gene$\", \"soloOutFormatFeaturesGeneField3\": \"Gene Expression\", \"soloStrand\": \"Forward\", \"wasp_conditional\": {\"waspOutputMode\": \"\"}}}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.11b+galaxy3",
       "tool_version": "2.7.11b+galaxy3",
+      "tool_shed_repository": {
+        "name": "rna_starsolo",
+        "changeset_revision": "9b1940be9da1",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
       "position": {
         "left": 810,
         "top": 50
@@ -273,7 +279,7 @@
             "output_name": "output"
           }
         ],
-        "refGenomeSource|gene_model": [
+        "refGenomeSource|sjdbGTFfile": [
           {
             "id": 5,
             "output_name": "filtered_gtf"
@@ -581,7 +587,7 @@
       "type": "tool",
       "label": "multiqc",
       "annotation": "Aggregate quality metrics across tools into an interactive HTML report",
-      "tool_state": "{\"__page__\": 0, \"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results_0\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"log\"}}, \"output_1\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"reads_per_gene\"}}, \"software\": \"rgrnastar\"}}, \"results_1\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"fastqc_data\"}}, \"software\": \"fastqc\"}}, \"title\": \"nf-core/scrnaseq Quality Report\"}",
+      "tool_state": "{\"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results\": [{\"__index__\": 0, \"software_cond\": {\"software\": \"star\", \"__current_case__\": 29, \"output\": [{\"__index__\": 0, \"type\": {\"type\": \"log\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"type\": {\"type\": \"genecounts\", \"__current_case__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}}}]}}, {\"__index__\": 1, \"software_cond\": {\"software\": \"fastqc\", \"__current_case__\": 9, \"output\": [{\"__index__\": 0, \"type\": \"data\", \"input\": {\"__class__\": \"ConnectedValue\"}}]}}], \"title\": \"nf-core/scrnaseq Quality Report\", \"__page__\": 0}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
       "tool_version": "1.35+galaxy4",
       "tool_shed_repository": {
@@ -607,7 +613,7 @@
             "output_name": "reads_per_gene"
           }
         ],
-        "results_1|software_cond|output_0|type|input": [
+        "results_1|software_cond|output_0|input": [
           {
             "id": 6,
             "output_name": "text_file"

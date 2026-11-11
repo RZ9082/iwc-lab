@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "92f4dcc2-ef6b-478a-8de0-97b5986e439d",
+  "uuid": "ecd073ef-58e0-4b24-8363-de25fa936549",
   "creator": [
     {
       "name": "nf-core",
@@ -509,7 +509,7 @@
       "type": "tool",
       "label": "multiqc",
       "annotation": "Aggregate quality metrics across tools into an interactive HTML report",
-      "tool_state": "{\"__page__\": 0, \"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results_0\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"fastqc_data\"}}, \"software\": \"fastqc\"}}, \"title\": \"nf-core/scrnaseq Quality Report\"}",
+      "tool_state": "{\"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results\": [{\"__index__\": 0, \"software_cond\": {\"software\": \"fastqc\", \"__current_case__\": 9, \"output\": [{\"__index__\": 0, \"type\": \"data\", \"input\": {\"__class__\": \"ConnectedValue\"}}]}}], \"title\": \"nf-core/scrnaseq Quality Report\", \"__page__\": 0}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
       "tool_version": "1.35+galaxy4",
       "tool_shed_repository": {
@@ -523,7 +523,7 @@
         "top": 290
       },
       "input_connections": {
-        "results_0|software_cond|output_0|type|input": [
+        "results_0|software_cond|output_0|input": [
           {
             "id": 6,
             "output_name": "text_file"
