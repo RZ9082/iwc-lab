@@ -293,16 +293,31 @@ steps:
         \ \"rt\") as f:\n        lines = f.readlines()\nelse:\n    with open(feat_src,\
         \ \"rt\") as f:\n        lines = f.readlines()\n\nfirst_cols = lines[0].strip().split(\"\
         \\t\") if lines else []\nif len(first_cols) == 1:\n    print(\"Detected 1-column\
-        \ features list (Kallisto/Bustools). Formatting into 10x 3-column format.\"\
-        )\n    temp_feat = \"features_3col.tsv\"\n    with open(temp_feat, \"w\")\
-        \ as f_out:\n        for l in lines:\n            gid = l.strip()\n      \
-        \      f_out.write(f\"{gid}\\t{gid}\\tGene Expression\\n\")\n    setup_input(temp_feat,\
-        \ \"features.tsv\")\nelse:\n    setup_input(feat_src, \"features.tsv\")\n\n\
-        print(f\"Reading 10x MTX from {mtx_dir} for sample {sample} ({input_type})...\"\
-        )\nadata = sc.read_10x_mtx(mtx_dir)\nadata.obs[\"sample\"] = sample\nadata.layers[\"\
-        count\"] = adata.X.copy()\n\nadata.var[\"gene_symbol\"] = adata.var.index\n\
-        adata.var[\"gene_versions\"] = adata.var[\"gene_ids\"]\nadata.var.index =\
-        \ adata.var[\"gene_versions\"].str.split(\".\").str[0].values\nadata.var_names_make_unique()\n\
+        \ features list (Kallisto/Bustools format). Reading directly via sc.read_mtx...\"\
+        )\n    adata = sc.read_mtx(params[\"matrix\"])\n    barcodes_src = params[\"\
+        barcodes\"]\n    with open(barcodes_src, \"rb\") as bf:\n        b_gz = bf.read(2)\
+        \ == b\"\\x1f\\x8b\"\n    if b_gz:\n        with gzip.open(barcodes_src, \"\
+        rt\") as bf:\n            barcodes_list = [l.strip() for l in bf if l.strip()]\n\
+        \    else:\n        with open(barcodes_src, \"rt\") as bf:\n            barcodes_list\
+        \ = [l.strip() for l in bf if l.strip()]\n    features_list = [l.strip() for\
+        \ l in lines if l.strip()]\n    if adata.shape == (len(barcodes_list), len(features_list)):\n\
+        \        adata.obs_names = barcodes_list\n        adata.var_names = features_list\n\
+        \    elif adata.shape == (len(features_list), len(barcodes_list)):\n     \
+        \   adata = adata.T\n        adata.obs_names = barcodes_list\n        adata.var_names\
+        \ = features_list\n    else:\n        print(f\"Warning: dimension mismatch\
+        \ {adata.shape} vs ({len(barcodes_list)}, {len(features_list)})\")\n     \
+        \   adata.obs_names = [f\"cell_{i}\" for i in range(adata.n_obs)]\n      \
+        \  adata.var_names = [f\"gene_{i}\" for i in range(adata.n_vars)]\n    adata.obs[\"\
+        sample\"] = sample\n    adata.layers[\"count\"] = adata.X.copy()\n    adata.var[\"\
+        gene_ids\"] = adata.var_names\n    adata.var[\"gene_symbol\"] = adata.var_names\n\
+        \    adata.var[\"gene_versions\"] = adata.var_names\n    adata.var.index =\
+        \ adata.var[\"gene_versions\"].str.split(\".\").str[0].values\n    adata.var_names_make_unique()\n\
+        else:\n    setup_input(feat_src, \"features.tsv\")\n    print(f\"Reading 10x\
+        \ MTX from {mtx_dir} for sample {sample} ({input_type})...\")\n    adata =\
+        \ sc.read_10x_mtx(mtx_dir)\n    adata.obs[\"sample\"] = sample\n    adata.layers[\"\
+        count\"] = adata.X.copy()\n    adata.var[\"gene_symbol\"] = adata.var.index\n\
+        \    adata.var[\"gene_versions\"] = adata.var[\"gene_ids\"]\n    adata.var.index\
+        \ = adata.var[\"gene_versions\"].str.split(\".\").str[0].values\n    adata.var_names_make_unique()\n\
         \nout_file = \"matrix.h5ad\"\nadata.write_h5ad(out_file)\nprint(f\"Successfully\
         \ wrote AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}\"\
         )\n"

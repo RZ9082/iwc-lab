@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "3c364bf0-6454-4608-97eb-81fa0a6e2a21",
+  "uuid": "fa7366b3-ef8c-465a-a4a9-9c289df0b84c",
   "creator": [
     {
       "name": "nf-core",
@@ -384,7 +384,7 @@
             "content": "$(JSON.stringify(inputs.reads))\n"
           }
         ],
-        "shell_command": "set -euo pipefail\n\n# Extract forward and reverse read paths from reads.json without python dependency\nREADS=($(grep -o '/[^\" ]*' reads.json | sort -u))\nif [ ${#READS[@]} -lt 2 ]; then\n  echo \"Error: Could not extract at least 2 read paths from reads.json\" >&2\n  cat reads.json >&2\n  exit 1\nfi\nFWD=\"${READS[0]}\"\nREV=\"${READS[1]}\"\necho \"Found forward read: $FWD\"\necho \"Found reverse read: $REV\"\n\nexport ALEVIN_FRY_HOME=\"$(pwd)/af_home\"\nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar -xzf '$(inputs.index_archive.path)' -C af_index\n\nSLOTS=\"${GALAXY_SLOTS:-4}\"\nCHEMISTRY=\"$(inputs.chemistry || '10xv2')\"\nRESOLUTION=\"$(inputs.resolution || 'cr-like')\"\n\nmkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"$SLOTS\" \\\n  --index af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\n  --chemistry \"$CHEMISTRY\" \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\" \\\n  --unfiltered-pl '$(inputs.whitelist.path)' \\\n  --resolution \"$RESOLUTION\" \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\nif [ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad was not produced by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit 1\nfi\necho \"Simpleaf quantification completed successfully.\"\n",
+        "shell_command": "set -euo pipefail\n\n# Extract forward and reverse read paths from reads.json without python dependency\nREADS=($(grep -o '/[^\" ]*' reads.json | sort -u))\nif [ ${#READS[@]} -lt 2 ]; then\n  echo \"Error: Could not extract at least 2 read paths from reads.json\" >&2\n  cat reads.json >&2\n  exit 1\nfi\nFWD=\"${READS[0]}\"\nREV=\"${READS[1]}\"\necho \"Found forward read: $FWD\"\necho \"Found reverse read: $REV\"\n\nexport ALEVIN_FRY_HOME=\"$(pwd)/af_home\"\nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar -xzf '$(inputs.index_archive.path)' -C af_index\n\nSLOTS=\"${GALAXY_SLOTS:-4}\"\nCHEMISTRY=\"$(inputs.chemistry)\"\nRESOLUTION=\"$(inputs.resolution)\"\n\nmkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"$SLOTS\" \\\n  --index af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\n  --chemistry \"$CHEMISTRY\" \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\" \\\n  --unfiltered-pl '$(inputs.whitelist.path)' \\\n  --resolution \"$RESOLUTION\" \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\nif [ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad was not produced by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit 1\nfi\necho \"Simpleaf quantification completed successfully.\"\n",
         "inputs": [
           {
             "name": "reads",
@@ -434,7 +434,7 @@
         ],
         "help": {
           "format": "markdown",
-          "content": "Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry.\n"
+          "content": "Quantifies single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry in Simpleaf.\n"
         }
       }
     },

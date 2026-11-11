@@ -225,16 +225,15 @@ steps:
       \ $FWD\"\necho \"Found reverse read: $REV\"\n\nexport ALEVIN_FRY_HOME=\"$(pwd)/af_home\"\
       \nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar\
       \ -xzf '$(inputs.index_archive.path)' -C af_index\n\nSLOTS=\"${GALAXY_SLOTS:-4}\"\
-      \nCHEMISTRY=\"$(inputs.chemistry || '10xv2')\"\nRESOLUTION=\"$(inputs.resolution\
-      \ || 'cr-like')\"\n\nmkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"\
-      $SLOTS\" \\\n  --index af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\
-      \n  --chemistry \"$CHEMISTRY\" \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\"\
-      \ \\\n  --unfiltered-pl '$(inputs.whitelist.path)' \\\n  --resolution \"$RESOLUTION\"\
-      \ \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind\
-      \ af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\nif [\
-      \ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad was not produced\
-      \ by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit 1\nfi\necho \"\
-      Simpleaf quantification completed successfully.\"\n"
+      \nCHEMISTRY=\"$(inputs.chemistry)\"\nRESOLUTION=\"$(inputs.resolution)\"\n\n\
+      mkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"$SLOTS\" \\\n  --index\
+      \ af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\n  --chemistry \"$CHEMISTRY\"\
+      \ \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\" \\\n  --unfiltered-pl '$(inputs.whitelist.path)'\
+      \ \\\n  --resolution \"$RESOLUTION\" \\\n  --anndata-out \\\n  --output af_quant_out\n\
+      \nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad\
+      \ \\;\nif [ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad\
+      \ was not produced by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit\
+      \ 1\nfi\necho \"Simpleaf quantification completed successfully.\"\n"
     inputs:
     - name: reads
       type: data_collection
@@ -268,8 +267,8 @@ steps:
       label: Simpleaf AnnData Matrix (H5AD)
     help:
       format: markdown
-      content: 'Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping
-        and alevin-fry.
+      content: 'Quantifies single-cell RNA-seq FASTQ reads using piscem/salmon mapping
+        and alevin-fry in Simpleaf.
 
         '
   in:
