@@ -1,0 +1,226 @@
+class: GalaxyWorkflow
+label: "nf-core/scrnaseq: Simpleaf (Alevin-fry)"
+doc: "Build Piscem/Salmon index, quantify single-cell FASTQ reads with Alevin-fry via Simpleaf, and perform QCatch quality assessment"
+release: "0.1.0"
+license: MIT
+tags:
+  - single-cell
+  - transcriptomics
+  - nf-core
+  - nf-core/scrnaseq
+creator:
+  - class: Organization
+    name: "nf-core"
+    url: "https://nf-co.re"
+  - class: Person
+    name: "Rand Zoabi"
+  - class: Organization
+    name: "Intergalactic Workflow Commission"
+    url: "https://galaxyproject.org/iwc"
+inputs:
+  reads:
+    type: data_collection
+    collection_type: paired
+    label: Paired Single-Cell Reads
+    doc: Paired-end single-cell FASTQ reads
+  fasta:
+    type: data
+    format: fasta
+    label: Genome Reference FASTA
+    doc: Reference genome FASTA sequence file
+  gtf:
+    type: data
+    format: gtf
+    label: Gene Annotation GTF
+    doc: Gene annotation file in GTF format
+  whitelist:
+    type: data
+    format: txt
+    label: Barcode Whitelist
+    doc: Whitelist of valid cell barcodes
+  chemistry:
+    type: text
+    default: 10xv2
+    label: Chemistry / Protocol
+    doc: 10x Chromium chemistry (10xv2, 10xv3, dropseq)
+  resolution:
+    type: text
+    default: cr-like
+    label: UMI Resolution Strategy
+    doc: UMI deduplication algorithm (cr-like, parsimony, trivial)
+outputs:
+  Simpleaf AnnData Matrix (H5AD):
+    outputSource: simpleaf_quant/h5ad
+    label: Simpleaf AnnData Matrix (H5AD)
+  QCatch Filtered AnnData Matrix (H5AD):
+    outputSource: qcatch/filtered_h5ad
+    label: QCatch Filtered AnnData Matrix (H5AD)
+  QCatch HTML Quality Report:
+    outputSource: qcatch/report
+    label: QCatch HTML Quality Report
+  Simpleaf Index Archive (.tar.gz):
+    outputSource: simpleaf_index/index_archive
+    label: Simpleaf Index Archive (.tar.gz)
+  Simpleaf Transcript-to-Gene Mapping (t2g.tsv):
+    outputSource: simpleaf_index/t2g
+    label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
+steps:
+  - id: simpleaf_index
+    label: simpleaf_index
+    doc: Build Piscem / Salmon reference index and transcript-to-gene mapping
+    run:
+      class: GalaxyUserTool
+      id: simpleaf-index
+      version: "0.19.5"
+      name: Simpleaf Index
+      description: Build Piscem / Salmon reference index and transcript-to-gene mapping for single-cell quantification
+      container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
+      shell_command: |
+        set -euo pipefail
+        export ALEVIN_FRY_HOME="$PWD/af_home"
+        mkdir -p "$ALEVIN_FRY_HOME"
+        simpleaf set-paths
+        simpleaf index \
+          --threads \${GALAXY_SLOTS:-4} \
+          --fasta '$(inputs.fasta.path)' \
+          --gtf '$(inputs.gtf.path)' \
+          -o af_index
+        
+        tar -czf index.tar.gz -C af_index index ref
+        cp af_index/ref/t2g_3col.tsv t2g.tsv 2>/dev/null || cp af_index/ref/t2g.tsv t2g.tsv 2>/dev/null || true
+      inputs:
+        - name: fasta
+          type: data
+          format: fasta
+          label: Genome Reference FASTA
+        - name: gtf
+          type: data
+          format: gtf
+          label: Gene Annotation GTF
+      outputs:
+        - name: index_archive
+          type: data
+          format: tar
+          from_work_dir: index.tar.gz
+          label: Simpleaf Index Archive (.tar.gz)
+        - name: t2g
+          type: data
+          format: tabular
+          from_work_dir: t2g.tsv
+          label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
+    in:
+      fasta: fasta
+      gtf: gtf
+
+  - id: simpleaf_quant
+    label: simpleaf_quant
+    doc: Quantify single-cell FASTQ reads with simpleaf quant
+    run:
+      class: GalaxyUserTool
+      id: simpleaf-quant
+      version: "0.19.5"
+      name: Simpleaf Quant
+      description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry
+      container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
+      shell_command: |
+        set -euo pipefail
+        export ALEVIN_FRY_HOME="$PWD/af_home"
+        mkdir -p "$ALEVIN_FRY_HOME"
+        simpleaf set-paths
+
+        mkdir -p af_index
+        tar -xzf '$(inputs.index_archive.path)' -C af_index
+
+        simpleaf quant \
+          --threads \${GALAXY_SLOTS:-4} \
+          --index af_index/index \
+          --t2g-map '$(inputs.t2g.path)' \
+          --chemistry '$(inputs.chemistry)' \
+          --reads1 '$(inputs.reads.forward.path)' \
+          --reads2 '$(inputs.reads.reverse.path)' \
+          --unfiltered-pl '$(inputs.whitelist.path)' \
+          --resolution '$(inputs.resolution)' \
+          --anndata-out \
+          --output af_quant_out
+
+        mkdir -p out_quants
+        find af_quant_out -name "*.h5ad" -exec cp {} out_quants/quants.h5ad \;
+      inputs:
+        - name: reads
+          type: data_collection
+          collection_type: paired
+          label: Paired Single-Cell Reads
+        - name: index_archive
+          type: data
+          format: tar
+          label: Simpleaf Index Archive (.tar.gz)
+        - name: t2g
+          type: data
+          format: tabular
+          label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
+        - name: whitelist
+          type: data
+          format: txt
+          label: Barcode Whitelist
+        - name: chemistry
+          type: text
+          default: 10xv2
+          label: Chemistry / Protocol
+        - name: resolution
+          type: text
+          default: cr-like
+          label: UMI Resolution Strategy
+      outputs:
+        - name: h5ad
+          type: data
+          format: h5ad
+          from_work_dir: out_quants/quants.h5ad
+          label: Simpleaf AnnData Matrix (H5AD)
+    in:
+      reads: reads
+      index_archive: simpleaf_index/index_archive
+      t2g: simpleaf_index/t2g
+      whitelist: whitelist
+      chemistry: chemistry
+      resolution: resolution
+
+  - id: qcatch
+    label: qcatch
+    doc: Evaluate quality metrics and filter empty droplets with QCatch
+    run:
+      class: GalaxyUserTool
+      id: qcatch
+      version: "0.2.14"
+      name: QCatch Quality Assessment
+      description: Quality assessment and empty droplet filtering for single-cell Alevin-fry quantifications
+      container: quay.io/biocontainers/qcatch:0.2.14--pyhdfd78af_0
+      shell_command: |
+        set -euo pipefail
+        qcatch \
+          --input '$(inputs.h5ad.path)' \
+          --output qcatch_out \
+          --save_filtered_h5ad \
+          --export_summary_table
+      inputs:
+        - name: h5ad
+          type: data
+          format: h5ad
+          label: Simpleaf / Alevin-fry AnnData Output (H5AD)
+      outputs:
+        - name: report
+          type: data
+          format: html
+          from_work_dir: qcatch_out/QCatch_report.html
+          label: QCatch HTML Quality Report
+        - name: filtered_h5ad
+          type: data
+          format: h5ad
+          from_work_dir: qcatch_out/filtered_quants.h5ad
+          label: QCatch Filtered AnnData Matrix (H5AD)
+        - name: metrics
+          type: data
+          format: csv
+          from_work_dir: qcatch_out/summary_table.csv
+          label: QCatch Metrics Summary Table (CSV)
+    in:
+      h5ad: simpleaf_quant/h5ad

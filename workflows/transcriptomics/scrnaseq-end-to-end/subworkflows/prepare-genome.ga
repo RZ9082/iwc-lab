@@ -1,0 +1,172 @@
+{
+  "name": "nf-core/scrnaseq: Prepare Genome",
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "annotation": "Prepare reference FASTA and GTF annotation for single-cell RNA-seq alignment by filtering GTF annotations to sequences present in the genome FASTA",
+  "tags": [
+    "single-cell",
+    "transcriptomics",
+    "nf-core",
+    "nf-core/scrnaseq"
+  ],
+  "license": "MIT",
+  "release": "0.1.0",
+  "uuid": "977e89b5-1349-44e4-8b41-cfcfe13e1658",
+  "creator": [
+    {
+      "name": "nf-core",
+      "url": "https://nf-co.re",
+      "class": "Organization"
+    },
+    {
+      "name": "Rand Zoabi",
+      "class": "Person"
+    },
+    {
+      "name": "Intergalactic Workflow Commission",
+      "url": "https://galaxyproject.org/iwc",
+      "class": "Organization"
+    }
+  ],
+  "comments": [],
+  "steps": {
+    "0": {
+      "id": 0,
+      "name": "genome_fasta",
+      "type_": "data_input",
+      "label": "genome_fasta",
+      "annotation": "Reference genome FASTA sequence file",
+      "tool_state": {
+        "name": "genome_fasta",
+        "format": [
+          "fasta"
+        ]
+      },
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "genome_fasta",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "Reference Genome FASTA",
+          "output_name": "output"
+        }
+      ],
+      "post_job_actions": {}
+    },
+    "1": {
+      "id": 1,
+      "name": "gtf",
+      "type_": "data_input",
+      "label": "gtf",
+      "annotation": "Gene annotation file in GTF format",
+      "tool_state": {
+        "name": "gtf",
+        "format": [
+          "gtf"
+        ]
+      },
+      "position": {
+        "top": 10,
+        "left": 10
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "2": {
+      "id": 2,
+      "name": "Filter GTF by Genome Sequences",
+      "type_": "tool",
+      "label": "filter_gtf",
+      "annotation": "Filter GTF file to include only annotations on sequences present in reference FASTA",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 20,
+        "left": 20
+      },
+      "input_connections": {
+        "fasta": [
+          {
+            "id": 0,
+            "output_name": "output"
+          }
+        ],
+        "gtf": [
+          {
+            "id": 1,
+            "output_name": "output"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "Filtered Gene Annotation GTF",
+          "output_name": "filtered_gtf"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "Filter GTF by Genome Sequences",
+        "id": "gtf-gene-filter",
+        "version": "0.1.0",
+        "description": "Filter GTF file to include only annotations on sequences present in reference FASTA",
+        "container": "quay.io/biocontainers/python:3.13",
+        "configfiles": [
+          {
+            "filename": "params.json",
+            "content": "{\"fasta\": $(JSON.stringify(inputs.fasta.path)), \"gtf\": $(JSON.stringify(inputs.gtf.path))}\n"
+          },
+          {
+            "filename": "filter_gtf.py",
+            "content": "import json\nfrom itertools import groupby\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\ndef is_header(line):\n    return line.startswith(\">\")\n\ndef extract_fasta_seq_names(fasta_name):\n    with open(fasta_name) as fh:\n        faiter = (x[1] for x in groupby(fh, is_header))\n        for header in faiter:\n            line = next(header)\n            if is_header(line):\n                yield line[1:].strip().split()[0]\n\nseq_names = set(extract_fasta_seq_names(params[\"fasta\"]))\nprint(f\"Extracted {len(seq_names)} sequence names from FASTA: {sorted(list(seq_names))[:10]}\")\n\nkept = 0\ntotal = 0\nwith open(\"filtered_genes.gtf\", \"w\") as out_f, open(params[\"gtf\"]) as in_f:\n    for line in in_f:\n        if line.startswith(\"#\"):\n            out_f.write(line)\n            continue\n        total += 1\n        seq_id = line.split(\"\\t\")[0]\n        if seq_id in seq_names:\n            kept += 1\n            out_f.write(line)\n\nprint(f\"Kept {kept} / {total} GTF lines matching reference genome sequences.\")\n"
+          }
+        ],
+        "shell_command": "python filter_gtf.py",
+        "inputs": [
+          {
+            "name": "fasta",
+            "type": "data",
+            "format": "fasta",
+            "label": "Reference Genome FASTA"
+          },
+          {
+            "name": "gtf",
+            "type": "data",
+            "format": "gtf",
+            "label": "Gene Annotation GTF"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "filtered_gtf",
+            "type": "data",
+            "format": "gtf",
+            "from_work_dir": "filtered_genes.gtf",
+            "label": "Filtered Gene Annotation GTF"
+          }
+        ]
+      }
+    }
+  }
+}

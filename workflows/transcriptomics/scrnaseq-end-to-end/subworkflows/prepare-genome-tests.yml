@@ -1,0 +1,19 @@
+- doc: Test prepare-genome subworkflow
+  job:
+    genome_fasta:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/GRCm38.p6.genome.chr19.fa
+      filetype: fasta
+    gtf:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/gencode.vM19.annotation.chr19.gtf
+      filetype: gtf
+  outputs:
+    Filtered Gene Annotation GTF:
+      asserts:
+        has_text:
+          text: "gene_id"
+    Reference Genome FASTA:
+      asserts:
+        has_text:
+          text: ">chr19"

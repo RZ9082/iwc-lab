@@ -1,0 +1,177 @@
+class: GalaxyWorkflow
+label: "nf-core/scrnaseq: H5AD Conversion & Merging"
+doc: "Concatenate per-sample single-cell AnnData H5AD matrices and convert into Seurat RDS and SingleCellExperiment RDS formats"
+release: "0.1.0"
+license: MIT
+tags:
+  - single-cell
+  - transcriptomics
+  - nf-core
+  - nf-core/scrnaseq
+creator:
+  - class: Organization
+    name: "nf-core"
+    url: "https://nf-co.re"
+  - class: Person
+    name: "Rand Zoabi"
+  - class: Organization
+    name: "Intergalactic Workflow Commission"
+    url: "https://galaxyproject.org/iwc"
+inputs:
+  h5ad_files:
+    type: data_collection
+    collection_type: list
+    label: Sample H5AD Collection
+    doc: Collection of per-sample AnnData objects in H5AD format
+  samplesheet:
+    type: data
+    format: csv
+    label: Samplesheet CSV
+    doc: Sample metadata table in CSV format
+outputs:
+  Combined AnnData Matrix (H5AD):
+    outputSource: concat_h5ad/combined_h5ad
+    label: Combined AnnData Matrix (H5AD)
+  Seurat RDS Object:
+    outputSource: anndatar_convert/seurat_rds
+    label: Seurat RDS Object
+  SingleCellExperiment RDS Object:
+    outputSource: anndatar_convert/sce_rds
+    label: SingleCellExperiment RDS Object
+steps:
+  - id: concat_h5ad
+    label: concat_h5ad
+    doc: Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata
+    run:
+      class: GalaxyUserTool
+      id: concat-h5ad
+      version: "1.7.2"
+      name: Concatenate AnnData Objects
+      description: Concatenate multiple AnnData H5AD files into a unified dataset and annotate with sample metadata
+      container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
+      configfiles:
+        - filename: params.json
+          content: |
+            {"samplesheet": $(JSON.stringify(inputs.samplesheet.path)), "h5ad_files": $(JSON.stringify(inputs.h5ad_files.elements.map(function(e) { return {"identifier": e.element_identifier, "path": e.path}; })))}
+        - filename: concat.py
+          content: |
+            import os
+            import json
+            import pandas as pd
+            import scanpy as sc
+            import anndata as ad
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            sheet_path = params.get("samplesheet")
+            h5ad_entries = params.get("h5ad_files", [])
+
+            adatas = []
+            for item in h5ad_entries:
+                p = item["path"]
+                sample_name = item.get("identifier") or os.path.basename(p).split(".")[0]
+                adata = sc.read_h5ad(p)
+                adata.obs["sample"] = sample_name
+                adatas.append(adata)
+
+            if len(adatas) == 1:
+                combined = adatas[0]
+            else:
+                combined = ad.concat(adatas, join="outer", label="batch", keys=[item.get("identifier") for item in h5ad_entries])
+
+            if sheet_path and os.path.exists(sheet_path):
+                try:
+                    df = pd.read_csv(sheet_path)
+                    if "sample" in df.columns:
+                        meta_dict = df.set_index("sample").to_dict(orient="index")
+                        for col in df.columns:
+                            if col != "sample":
+                                combined.obs[col] = combined.obs["sample"].map(lambda s: meta_dict.get(s, {}).get(col))
+                except Exception as e:
+                    print("Warning: could not merge samplesheet:", e)
+
+            combined.write_h5ad("combined.h5ad")
+      shell_command: |
+        set -euo pipefail
+        python3 concat.py
+      inputs:
+        - name: h5ad_files
+          type: data_collection
+          collection_type: list
+          label: Input H5AD Files
+        - name: samplesheet
+          type: data
+          format: csv
+          label: Samplesheet CSV
+      outputs:
+        - name: combined_h5ad
+          type: data
+          format: h5ad
+          from_work_dir: combined.h5ad
+          label: Combined AnnData Matrix (H5AD)
+    in:
+      h5ad_files: h5ad_files
+      samplesheet: samplesheet
+
+  - id: anndatar_convert
+    label: anndatar_convert
+    doc: Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats
+    run:
+      class: GalaxyUserTool
+      id: anndatar-convert
+      version: "0.1.0"
+      name: AnnData to Seurat and SingleCellExperiment
+      description: Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats
+      container: quay.io/biocontainers/mulled-v2-c89532d7d58608b69c1a896707ec4cf926b98182:f42f8452ef30fd9df25b4e403c103977bc4c90df-0
+      configfiles:
+        - filename: params.json
+          content: |
+            {"h5ad": $(JSON.stringify(inputs.h5ad.path))}
+        - filename: convert.R
+          content: |
+            library(jsonlite)
+            params <- fromJSON("params.json")
+            input_path <- params$h5ad
+
+            TMP_DIR <- Sys.getenv("TMPDIR", "/tmp")
+            PYDIR <- file.path(TMP_DIR, paste0("pybin_", Sys.getpid()))
+            dir.create(PYDIR, showWarnings = FALSE, recursive = TRUE)
+            file.symlink(Sys.which("python"), file.path(PYDIR, "python"))
+            Sys.setenv(RETICULATE_PYTHON = file.path(PYDIR, "python"))
+
+            library(reticulate)
+            library(sceasy)
+            library(Seurat)
+            library(SingleCellExperiment)
+
+            cat("Reading and converting AnnData H5AD to Seurat from:", input_path, "\n")
+            sceasy::convertFormat(input_path, from = "anndata", to = "seurat", outFile = "matrix.seurat.rds")
+            cat("Saved matrix.seurat.rds\n")
+
+            cat("Converting Seurat to SingleCellExperiment object...\n")
+            srt <- readRDS("matrix.seurat.rds")
+            sce <- as.SingleCellExperiment(srt)
+            saveRDS(sce, file = "matrix.sce.rds")
+            cat("Saved matrix.sce.rds\n")
+      shell_command: |
+        set -euo pipefail
+        Rscript convert.R
+      inputs:
+        - name: h5ad
+          type: data
+          format: h5ad
+          label: AnnData Object (H5AD)
+      outputs:
+        - name: seurat_rds
+          type: data
+          format: rds
+          from_work_dir: matrix.seurat.rds
+          label: Seurat RDS Object
+        - name: sce_rds
+          type: data
+          format: rds
+          from_work_dir: matrix.sce.rds
+          label: SingleCellExperiment RDS Object
+    in:
+      h5ad: concat_h5ad/combined_h5ad

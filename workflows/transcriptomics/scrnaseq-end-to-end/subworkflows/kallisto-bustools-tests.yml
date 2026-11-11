@@ -1,0 +1,45 @@
+- doc: Test Kallisto-Bustools subworkflow
+  job:
+    reads:
+      class: Collection
+      collection_type: paired
+      elements:
+        - class: File
+          identifier: forward
+          location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/Sample_X/fastqs/Sample_X_1.fastq.gz
+          filetype: fastqsanger.gz
+        - class: File
+          identifier: reverse
+          location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/Sample_X/fastqs/Sample_X_2.fastq.gz
+          filetype: fastqsanger.gz
+    fasta:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/GRCm38.p6.genome.chr19.fa
+      filetype: fasta
+    gtf:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/gencode.vM19.annotation.chr19.gtf
+      filetype: gtf
+    technology: "10XV2"
+    workflow_mode: "standard"
+  outputs:
+    Raw Gene Expression Matrix (MTX):
+      asserts:
+        has_size:
+          min: 100
+    Raw Cell Barcodes (TSV):
+      asserts:
+        has_n_lines:
+          min: 1
+    Raw Gene Features (TSV):
+      asserts:
+        has_n_lines:
+          min: 1
+    Kallisto Index (.idx):
+      asserts:
+        has_size:
+          min: 1000
+    Transcript-to-Gene Mapping (t2g.txt):
+      asserts:
+        has_n_lines:
+          min: 1

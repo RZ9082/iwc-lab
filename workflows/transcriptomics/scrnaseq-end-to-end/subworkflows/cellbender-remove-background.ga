@@ -1,0 +1,298 @@
+{
+  "name": "nf-core/scrnaseq: CellBender Remove Background",
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "annotation": "Remove ambient RNA and empty droplets from raw single-cell AnnData matrices using CellBender and barcode subsetting",
+  "tags": [
+    "single-cell",
+    "transcriptomics",
+    "nf-core",
+    "nf-core/scrnaseq"
+  ],
+  "license": "MIT",
+  "release": "0.1.0",
+  "uuid": "6412a861-0184-4002-ac5b-356bca4fdf60",
+  "creator": [
+    {
+      "name": "nf-core",
+      "url": "https://nf-co.re",
+      "class": "Organization"
+    },
+    {
+      "name": "Rand Zoabi",
+      "class": "Person"
+    },
+    {
+      "name": "Intergalactic Workflow Commission",
+      "url": "https://galaxyproject.org/iwc",
+      "class": "Organization"
+    }
+  ],
+  "comments": [],
+  "steps": {
+    "0": {
+      "id": 0,
+      "name": "raw_h5ad",
+      "type_": "data_input",
+      "label": "raw_h5ad",
+      "annotation": "Raw single-cell gene expression matrix in H5AD format",
+      "tool_state": {
+        "name": "raw_h5ad",
+        "format": [
+          "h5ad"
+        ]
+      },
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "raw_h5ad",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "1": {
+      "id": 1,
+      "name": "fpr",
+      "type_": "parameter_input",
+      "label": "fpr",
+      "annotation": "Nominal target false positive rate for CellBender",
+      "tool_state": {
+        "name": "fpr",
+        "parameter_type": "float",
+        "default": 0.01
+      },
+      "position": {
+        "top": 10,
+        "left": 10
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fpr",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "2": {
+      "id": 2,
+      "name": "epochs",
+      "type_": "parameter_input",
+      "label": "epochs",
+      "annotation": "Training epochs for CellBender deep generative model",
+      "tool_state": {
+        "name": "epochs",
+        "parameter_type": "integer",
+        "default": 150
+      },
+      "position": {
+        "top": 20,
+        "left": 20
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "epochs",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "3": {
+      "id": 3,
+      "name": "CellBender Remove Background",
+      "type_": "tool",
+      "label": "cellbender",
+      "annotation": "Train deep generative model to estimate ambient RNA profile and identify cell-containing droplets",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 30,
+        "left": 30
+      },
+      "input_connections": {
+        "h5ad": [
+          {
+            "id": 0,
+            "output_name": "output"
+          }
+        ],
+        "fpr": [
+          {
+            "id": 1,
+            "output_name": "output"
+          }
+        ],
+        "epochs": [
+          {
+            "id": 2,
+            "output_name": "output"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "CellBender Filtered Cell Barcodes",
+          "output_name": "barcodes"
+        },
+        {
+          "label": "CellBender Diagnostic Report (PDF)",
+          "output_name": "pdf"
+        },
+        {
+          "label": "CellBender Metrics Summary",
+          "output_name": "metrics"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "CellBender Remove Background",
+        "id": "cellbender-remove-background",
+        "version": "0.3.2",
+        "description": "Eliminate ambient RNA and empty droplets from raw single-cell H5AD count matrices",
+        "container": "quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0",
+        "shell_command": "set -euo pipefail\ncellbender remove-background \\\n  --input '$(inputs.h5ad.path)' \\\n  --output cellbender_out.h5 \\\n  --fpr $(inputs.fpr) \\\n  --epochs $(inputs.epochs) \\\n  --cpu-threads \\${GALAXY_SLOTS:-4}\n",
+        "inputs": [
+          {
+            "name": "h5ad",
+            "type": "data",
+            "format": "h5ad",
+            "label": "Raw Unfiltered AnnData Matrix (H5AD)"
+          },
+          {
+            "name": "fpr",
+            "type": "float",
+            "default": 0.01,
+            "label": "Nominal False Positive Rate (FPR)"
+          },
+          {
+            "name": "epochs",
+            "type": "integer",
+            "default": 150,
+            "label": "Number of Training Epochs"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "barcodes",
+            "type": "data",
+            "format": "csv",
+            "from_work_dir": "cellbender_out_cell_barcodes.csv",
+            "label": "CellBender Filtered Cell Barcodes"
+          },
+          {
+            "name": "filtered_h5",
+            "type": "data",
+            "format": "h5",
+            "from_work_dir": "cellbender_out_filtered.h5",
+            "label": "CellBender Filtered Count Matrix"
+          },
+          {
+            "name": "metrics",
+            "type": "data",
+            "format": "csv",
+            "from_work_dir": "cellbender_out_metrics.csv",
+            "label": "CellBender Metrics Summary"
+          },
+          {
+            "name": "pdf",
+            "type": "data",
+            "format": "pdf",
+            "from_work_dir": "cellbender_out.pdf",
+            "label": "CellBender Diagnostic Plots (PDF)"
+          }
+        ]
+      }
+    },
+    "4": {
+      "id": 4,
+      "name": "Filter AnnData by Barcodes",
+      "type_": "tool",
+      "label": "filter_barcodes",
+      "annotation": "Subset AnnData matrix using CellBender verified barcodes",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 40,
+        "left": 40
+      },
+      "input_connections": {
+        "h5ad": [
+          {
+            "id": 0,
+            "output_name": "output"
+          }
+        ],
+        "barcodes": [
+          {
+            "id": 3,
+            "output_name": "barcodes"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "CellBender Filtered AnnData Matrix",
+          "output_name": "filtered_h5ad"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "Filter AnnData by Barcodes",
+        "id": "anndata-barcodes",
+        "version": "1.7.2",
+        "description": "Subset an AnnData H5AD matrix using a list of valid cell barcodes",
+        "container": "quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0",
+        "configfiles": [
+          {
+            "filename": "filter_barcodes.py",
+            "content": "import sys\nimport pandas as pd\nimport anndata as ad\n\nbarcodes_file = sys.argv[1]\nh5ad_file = sys.argv[2]\nout_file = sys.argv[3]\n\nprint(f\"Reading barcodes from {barcodes_file}\")\ndf = pd.read_csv(barcodes_file, header=None)\nkeep_barcodes = set(df[0].astype(str).str.strip().values)\nprint(f\"Found {len(keep_barcodes)} valid cell barcodes\")\n\nprint(f\"Loading AnnData from {h5ad_file}\")\nadata = ad.read_h5ad(h5ad_file)\nprint(f\"Original shape: {adata.shape}\")\n\noverlap = set(adata.obs_names).intersection(keep_barcodes)\nif len(overlap) == 0:\n    if any(bc.endswith(\"-1\") for bc in keep_barcodes):\n        keep_barcodes = {bc.replace(\"-1\", \"\") for bc in keep_barcodes}\n    else:\n        keep_barcodes = {f\"{bc}-1\" for bc in keep_barcodes}\n    overlap = set(adata.obs_names).intersection(keep_barcodes)\n\nprint(f\"Matching barcodes: {len(overlap)}\")\nvalid_indices = [idx for idx, name in enumerate(adata.obs_names) if name in keep_barcodes]\nadata_filtered = adata[valid_indices].copy()\nprint(f\"Filtered shape: {adata_filtered.shape}\")\n\nadata_filtered.write_h5ad(out_file)\nprint(f\"Saved filtered AnnData to {out_file}\")\n"
+          }
+        ],
+        "shell_command": "set -euo pipefail\npython3 filter_barcodes.py '$(inputs.barcodes.path)' '$(inputs.h5ad.path)' filtered_cellbender.h5ad\n",
+        "inputs": [
+          {
+            "name": "h5ad",
+            "type": "data",
+            "format": "h5ad",
+            "label": "Input AnnData Object (H5AD)"
+          },
+          {
+            "name": "barcodes",
+            "type": "data",
+            "format": "csv",
+            "label": "Whitelist Cell Barcodes (CSV)"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "filtered_h5ad",
+            "type": "data",
+            "format": "h5ad",
+            "from_work_dir": "filtered_cellbender.h5ad",
+            "label": "Barcode-Filtered AnnData Matrix (H5AD)"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+- doc: Test H5AD conversion subworkflow
+  job:
+    h5ad_files:
+      class: Collection
+      collection_type: list
+      elements:
+        - class: File
+          identifier: Sample_X
+          location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/Sample_X/matrix.h5ad
+          filetype: h5ad
+    samplesheet:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/samplesheet.csv
+      filetype: csv
+  outputs:
+    Combined AnnData Matrix (H5AD):
+      asserts:
+        has_size:
+          min: 1000
+    Seurat RDS Object:
+      asserts:
+        has_size:
+          min: 1000
+    SingleCellExperiment RDS Object:
+      asserts:
+        has_size:
+          min: 1000

@@ -1,0 +1,50 @@
+class: GalaxyUserTool
+id: cellbender-remove-background
+version: "0.3.2"
+name: CellBender Remove Background
+description: Eliminate ambient RNA and empty droplets from raw single-cell H5AD count matrices
+container: quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0
+shell_command: |
+  set -euo pipefail
+  cellbender remove-background \
+    --input '$(inputs.h5ad.path)' \
+    --output cellbender_out.h5 \
+    --fpr $(inputs.fpr) \
+    --epochs $(inputs.epochs) \
+    --cpu-threads \${GALAXY_SLOTS:-4}
+inputs:
+  - name: h5ad
+    type: data
+    format: h5ad
+    label: Raw Unfiltered AnnData Matrix (H5AD)
+  - name: fpr
+    type: float
+    default: 0.01
+    label: Nominal False Positive Rate (FPR)
+  - name: epochs
+    type: integer
+    default: 150
+    label: Number of Training Epochs
+outputs:
+  - name: barcodes
+    type: data
+    format: csv
+    from_work_dir: cellbender_out_cell_barcodes.csv
+    label: CellBender Filtered Cell Barcodes
+  - name: filtered_h5
+    type: data
+    format: h5
+    from_work_dir: cellbender_out_filtered.h5
+    label: CellBender Filtered Count Matrix
+  - name: metrics
+    type: data
+    format: csv
+    from_work_dir: cellbender_out_metrics.csv
+    label: CellBender Metrics Summary
+  - name: pdf
+    type: data
+    format: pdf
+    from_work_dir: cellbender_out.pdf
+    label: CellBender Diagnostic Plots (PDF)
+help: |
+  CellBender is an unsupervised machine learning method for removing ambient RNA and empty droplets from raw single-cell RNA-seq data.

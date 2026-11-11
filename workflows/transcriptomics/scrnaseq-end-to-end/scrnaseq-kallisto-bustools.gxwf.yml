@@ -1,0 +1,470 @@
+class: GalaxyWorkflow
+label: "Single-Cell RNA-Seq Pipeline: Kallisto-Bustools (AnnData, Seurat, SingleCellExperiment, MultiQC)"
+doc: |
+  This workflow performs single-cell RNA-seq pseudoalignment and quantification using kallisto and bustools (kb-python),
+  followed by AnnData generation, multi-sample concatenation, Seurat and SingleCellExperiment format conversion,
+  and MultiQC reporting matching the kallisto branch of nf-core/scrnaseq.
+release: "0.1.0"
+license: MIT
+tags:
+  - single-cell
+  - transcriptomics
+  - kallisto
+  - bustools
+  - anndata
+  - seurat
+  - nf-core
+  - nf-core/scrnaseq
+creator:
+  - class: Organization
+    name: "nf-core"
+    url: "https://nf-co.re/scrnaseq"
+  - class: Person
+    name: "Rand Zoabi"
+    email: "rand.zoabi@rz.uni-freiburg.de"
+  - class: Organization
+    name: "Intergalactic Workflow Commission"
+    url: "https://github.com/galaxyproject/iwc"
+inputs:
+  reads:
+    type: collection
+    collection_type: list:paired
+    format: fastqsanger.gz
+    label: Paired-end single-cell RNA-seq reads
+    doc: FASTQ collection containing cell barcode and UMI (Read 1) paired with cDNA read (Read 2)
+  fasta:
+    type: data
+    format: fasta
+    label: Reference genome FASTA
+    doc: Reference genome sequence in FASTA format
+  gtf:
+    type: data
+    format: gtf
+    label: Reference gene annotation GTF
+    doc: Reference gene annotation file in GTF format
+  samplesheet:
+    type: data
+    format: csv,tabular,txt
+    optional: true
+    label: Sample metadata sheet
+    doc: Optional samplesheet (CSV/TSV) containing sample metadata to merge into AnnData
+outputs:
+  Filtered Gene Annotation GTF:
+    outputSource: filter_gtf/filtered_gtf
+    label: Filtered Gene Annotation GTF
+  Raw Gene Expression Matrix:
+    outputSource: kb_count/raw_matrix
+    label: Raw Gene Expression Matrix
+  Raw Cell Barcodes:
+    outputSource: kb_count/raw_barcodes
+    label: Raw Cell Barcodes
+  Raw Gene Features:
+    outputSource: kb_count/raw_features
+    label: Raw Gene Features
+  FastQC Web Reports:
+    outputSource: fastqc/html_file
+    label: FastQC Web Reports
+  Per-Sample Filtered AnnData Matrix:
+    outputSource: mtx_to_h5ad/h5ad
+    label: Per-Sample Filtered AnnData Matrix
+  Combined Filtered AnnData Matrix:
+    outputSource: concat_h5ad/combined_h5ad
+    label: Combined Filtered AnnData Matrix
+  Combined Seurat RDS Object:
+    outputSource: anndatar_convert/seurat_rds
+    label: Combined Seurat RDS Object
+  Combined SingleCellExperiment RDS Object:
+    outputSource: anndatar_convert/sce_rds
+    label: Combined SingleCellExperiment RDS Object
+  MultiQC Quality Report:
+    outputSource: multiqc/html_report
+    label: MultiQC Quality Report
+steps:
+  - id: filter_gtf
+    label: filter_gtf
+    doc: Filter GTF file to include only annotations on sequences present in reference FASTA
+    run:
+      class: GalaxyUserTool
+      id: gtf-gene-filter
+      version: "0.1.0"
+      name: Filter GTF by Genome Sequences
+      description: Filter GTF file to include only annotations on sequences present in reference FASTA
+      container: quay.io/biocontainers/python:3.13
+      configfiles:
+        - filename: params.json
+          content: |
+            {"fasta": $(JSON.stringify(inputs.fasta.path)), "gtf": $(JSON.stringify(inputs.gtf.path))}
+        - filename: filter_gtf.py
+          content: |
+            import json
+            from itertools import groupby
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            def is_header(line):
+                return line.startswith(">")
+
+            def extract_fasta_seq_names(fasta_name):
+                with open(fasta_name) as fh:
+                    faiter = (x[1] for x in groupby(fh, is_header))
+                    for header in faiter:
+                        line = next(header)
+                        if is_header(line):
+                            yield line[1:].strip().split()[0]
+
+            seq_names = set(extract_fasta_seq_names(params["fasta"]))
+            with open(params["gtf"]) as in_handle, open("filtered.gtf", "w") as out_handle:
+                for line in in_handle:
+                    if line.startswith("#"):
+                        out_handle.write(line)
+                    else:
+                        fields = line.split("\t")
+                        if fields[0] in seq_names:
+                            out_handle.write(line)
+      shell_command: |
+        set -euo pipefail
+        python3 filter_gtf.py
+      inputs:
+        - name: fasta
+          type: data
+          format: fasta
+          label: Reference Genome FASTA
+        - name: gtf
+          type: data
+          format: gtf
+          label: Gene Annotation GTF
+      outputs:
+        - name: filtered_gtf
+          type: data
+          format: gtf
+          from_work_dir: filtered.gtf
+          label: Filtered Gene Annotation GTF
+    in:
+      fasta: fasta
+      gtf: gtf
+
+  - id: fastqc
+    label: fastqc
+    doc: Initial sequence quality metrics using FastQC
+    tool_id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1
+    tool_version: 0.74+galaxy1
+    in:
+      input_file: reads
+
+  - id: kb_ref
+    label: kb_ref
+    doc: Build kallisto index and transcript-to-gene mapping
+    run:
+      class: GalaxyUserTool
+      id: kb-ref
+      version: "0.28.2"
+      name: Kallisto-Bustools Reference
+      description: Generate kallisto index and transcript-to-gene mappings from genome FASTA and GTF
+      container: quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2
+      shell_command: |
+        set -euo pipefail
+        kb ref \
+          -i kb_ref_out.idx \
+          -g t2g.txt \
+          -f1 cdna.fa \
+          --workflow standard \
+          '$(inputs.fasta.path)' \
+          '$(inputs.gtf.path)'
+      inputs:
+        - name: fasta
+          type: data
+          format: fasta
+          label: Genome Reference FASTA
+        - name: gtf
+          type: data
+          format: gtf
+          label: Gene Annotation GTF
+      outputs:
+        - name: index
+          type: data
+          format: binary
+          from_work_dir: kb_ref_out.idx
+          label: Kallisto Index (.idx)
+        - name: t2g
+          type: data
+          format: tabular
+          from_work_dir: t2g.txt
+          label: Transcript-to-Gene Mapping (t2g.txt)
+    in:
+      fasta: fasta
+      gtf: filter_gtf/filtered_gtf
+
+  - id: kb_count
+    label: kb_count
+    doc: Quantify single-cell FASTQ reads
+    run:
+      class: GalaxyUserTool
+      id: kb-count
+      version: "0.28.2"
+      name: Kallisto-Bustools Count
+      description: Quantify single-cell RNA-seq FASTQ reads using kallisto and bustools
+      container: quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2
+      shell_command: |
+        set -euo pipefail
+        kb count \
+          -t \${GALAXY_SLOTS:-4} \
+          -i '$(inputs.index.path)' \
+          -g '$(inputs.t2g.path)' \
+          -x 10XV2 \
+          --workflow standard \
+          -o output_counts \
+          '$(inputs.reads.forward.path)' '$(inputs.reads.reverse.path)'
+        
+        mkdir -p out_solo/raw out_solo/filtered
+        if [ -d output_counts/counts_unfiltered ]; then
+          cp output_counts/counts_unfiltered/*.mtx out_solo/raw/matrix.mtx 2>/dev/null || true
+          cp output_counts/counts_unfiltered/*.barcodes.txt out_solo/raw/barcodes.tsv 2>/dev/null || true
+          cp output_counts/counts_unfiltered/*.genes.txt out_solo/raw/features.tsv 2>/dev/null || true
+        fi
+        if [ -d output_counts/counts_filtered ]; then
+          cp output_counts/counts_filtered/*.mtx out_solo/filtered/matrix.mtx 2>/dev/null || true
+          cp output_counts/counts_filtered/*.barcodes.txt out_solo/filtered/barcodes.tsv 2>/dev/null || true
+          cp output_counts/counts_filtered/*.genes.txt out_solo/filtered/features.tsv 2>/dev/null || true
+        fi
+      inputs:
+        - name: reads
+          type: data_collection
+          collection_type: paired
+          label: Paired Single-Cell Reads
+        - name: index
+          type: data
+          format: binary
+          label: Kallisto Index (.idx)
+        - name: t2g
+          type: data
+          format: tabular
+          label: Transcript-to-Gene Mapping (t2g.txt)
+      outputs:
+        - name: raw_matrix
+          type: data
+          format: mtx
+          from_work_dir: out_solo/raw/matrix.mtx
+          label: Raw Count Matrix (MTX)
+        - name: raw_barcodes
+          type: data
+          format: tsv
+          from_work_dir: out_solo/raw/barcodes.tsv
+          label: Raw Cell Barcodes (TSV)
+        - name: raw_features
+          type: data
+          format: tsv
+          from_work_dir: out_solo/raw/features.tsv
+          label: Raw Gene Features (TSV)
+    in:
+      reads: reads
+      index: kb_ref/index
+      t2g: kb_ref/t2g
+
+  - id: mtx_to_h5ad
+    label: mtx_to_h5ad
+    doc: Convert count matrices to AnnData H5AD format
+    run:
+      class: GalaxyUserTool
+      id: mtx-to-h5ad
+      version: "1.7.2"
+      name: Matrix Market to AnnData H5AD
+      description: Convert 10x Genomics Matrix Market files (matrix.mtx, barcodes.tsv, features.tsv) into an AnnData H5AD object
+      container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
+      configfiles:
+        - filename: params.json
+          content: |
+            {"matrix": $(JSON.stringify(inputs.matrix.path)), "barcodes": $(JSON.stringify(inputs.barcodes.path)), "features": $(JSON.stringify(inputs.features.path))}
+        - filename: convert.py
+          content: |
+            import os
+            import gzip
+            import json
+            import scanpy as sc
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            os.makedirs("solo_mtx_input", exist_ok=True)
+            for key, target_name in [("matrix", "matrix.mtx"), ("barcodes", "barcodes.tsv"), ("features", "features.tsv")]:
+                src = params[key]
+                dst = os.path.join("solo_mtx_input", target_name)
+                with open(src, "rb") as f_in, gzip.open(dst + ".gz", "wb") as f_out:
+                    f_out.writelines(f_in)
+
+            adata = sc.read_10x_mtx("solo_mtx_input", var_names="gene_symbols", make_unique=True, cache=False)
+            adata.write_h5ad("matrix.h5ad")
+      shell_command: |
+        set -euo pipefail
+        python3 convert.py
+      inputs:
+        - name: matrix
+          type: data
+          format: mtx
+          label: Expression Matrix (MTX)
+        - name: barcodes
+          type: data
+          format: tsv
+          label: Cell Barcodes (TSV)
+        - name: features
+          type: data
+          format: tsv
+          label: Gene Features (TSV)
+      outputs:
+        - name: h5ad
+          type: data
+          format: h5ad
+          from_work_dir: matrix.h5ad
+          label: AnnData Object (H5AD)
+    in:
+      matrix: kb_count/raw_matrix
+      barcodes: kb_count/raw_barcodes
+      features: kb_count/raw_features
+
+  - id: multiqc
+    label: multiqc
+    doc: Aggregate quality metrics across tools into an interactive HTML report
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4
+    tool_version: 1.35+galaxy4
+    in:
+      results_0|software_cond|software:
+        default: fastqc
+      results_0|software_cond|output_0|type|input: fastqc/text_file
+
+  - id: concat_h5ad
+    label: concat_h5ad
+    doc: Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata
+    run:
+      class: GalaxyUserTool
+      id: concat-h5ad
+      version: "1.7.2"
+      name: Concatenate AnnData Objects
+      description: Concatenate multiple AnnData H5AD files into a unified dataset and annotate with sample metadata
+      container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
+      configfiles:
+        - filename: params.json
+          content: |
+            {"samplesheet": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)), "h5ad_files": $(JSON.stringify(inputs.h5ad_files.elements.map(function(e) { return {"identifier": e.element_identifier, "path": e.path}; })))}
+        - filename: concat.py
+          content: |
+            import os
+            import json
+            import pandas as pd
+            import scanpy as sc
+            import anndata as ad
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            sheet_path = params.get("samplesheet")
+            h5ad_entries = params.get("h5ad_files", [])
+
+            adatas = []
+            for item in h5ad_entries:
+                p = item["path"]
+                sample_name = item.get("identifier") or os.path.basename(p).split(".")[0]
+                adata = sc.read_h5ad(p)
+                adata.obs["sample"] = sample_name
+                adatas.append(adata)
+
+            if len(adatas) == 1:
+                combined = adatas[0]
+            else:
+                combined = ad.concat(adatas, join="outer", label="batch", keys=[item.get("identifier") for item in h5ad_entries])
+
+            if sheet_path and os.path.exists(sheet_path):
+                try:
+                    df = pd.read_csv(sheet_path)
+                    if "sample" in df.columns:
+                        meta_dict = df.set_index("sample").to_dict(orient="index")
+                        for col in df.columns:
+                            if col != "sample":
+                                combined.obs[col] = combined.obs["sample"].map(lambda s: meta_dict.get(s, {}).get(col))
+                except Exception as e:
+                    print("Warning: could not merge samplesheet:", e)
+
+            combined.write_h5ad("combined.h5ad")
+      shell_command: |
+        set -euo pipefail
+        python3 concat.py
+      inputs:
+        - name: h5ad_files
+          type: data_collection
+          collection_type: list
+          label: Input H5AD Files
+        - name: samplesheet
+          type: data
+          format: csv
+          optional: true
+          label: Samplesheet CSV
+      outputs:
+        - name: combined_h5ad
+          type: data
+          format: h5ad
+          from_work_dir: combined.h5ad
+          label: Combined AnnData Matrix (H5AD)
+    in:
+      h5ad_files: mtx_to_h5ad/h5ad
+      samplesheet: samplesheet
+
+  - id: anndatar_convert
+    label: anndatar_convert
+    doc: Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats
+    run:
+      class: GalaxyUserTool
+      id: anndatar-convert
+      version: "0.1.0"
+      name: AnnData to Seurat and SingleCellExperiment
+      description: Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats
+      container: quay.io/biocontainers/mulled-v2-c89532d7d58608b69c1a896707ec4cf926b98182:f42f8452ef30fd9df25b4e403c103977bc4c90df-0
+      configfiles:
+        - filename: params.json
+          content: |
+            {"h5ad": $(JSON.stringify(inputs.h5ad.path))}
+        - filename: convert.R
+          content: |
+            library(jsonlite)
+            params <- fromJSON("params.json")
+            input_path <- params$h5ad
+
+            TMP_DIR <- Sys.getenv("TMPDIR", "/tmp")
+            PYDIR <- file.path(TMP_DIR, paste0("pybin_", Sys.getpid()))
+            dir.create(PYDIR, showWarnings = FALSE, recursive = TRUE)
+            file.symlink(Sys.which("python"), file.path(PYDIR, "python"))
+            Sys.setenv(RETICULATE_PYTHON = file.path(PYDIR, "python"))
+
+            library(reticulate)
+            library(sceasy)
+            library(Seurat)
+            library(SingleCellExperiment)
+
+            cat("Reading and converting AnnData H5AD to Seurat from:", input_path, "\n")
+            sceasy::convertFormat(input_path, from = "anndata", to = "seurat", outFile = "matrix.seurat.rds")
+            cat("Saved matrix.seurat.rds\n")
+
+            cat("Converting Seurat to SingleCellExperiment object...\n")
+            srt <- readRDS("matrix.seurat.rds")
+            sce <- as.SingleCellExperiment(srt)
+            saveRDS(sce, file = "matrix.sce.rds")
+            cat("Saved matrix.sce.rds\n")
+      shell_command: |
+        set -euo pipefail
+        Rscript convert.R
+      inputs:
+        - name: h5ad
+          type: data
+          format: h5ad
+          label: AnnData Object (H5AD)
+      outputs:
+        - name: seurat_rds
+          type: data
+          format: rds
+          from_work_dir: matrix.seurat.rds
+          label: Seurat RDS Object
+        - name: sce_rds
+          type: data
+          format: rds
+          from_work_dir: matrix.sce.rds
+          label: SingleCellExperiment RDS Object
+    in:
+      h5ad: concat_h5ad/combined_h5ad

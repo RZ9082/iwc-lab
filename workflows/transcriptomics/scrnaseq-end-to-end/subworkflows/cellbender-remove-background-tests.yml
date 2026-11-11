@@ -1,0 +1,21 @@
+- doc: Test CellBender remove background subworkflow
+  job:
+    raw_h5ad:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/Sample_X/matrix.h5ad
+      filetype: h5ad
+    fpr: 0.01
+    epochs: 5
+  outputs:
+    CellBender Filtered AnnData Matrix:
+      asserts:
+        has_size:
+          min: 1000
+    CellBender Filtered Cell Barcodes:
+      asserts:
+        has_n_lines:
+          min: 1
+    CellBender Metrics Summary:
+      asserts:
+        has_text:
+          text: "cell"

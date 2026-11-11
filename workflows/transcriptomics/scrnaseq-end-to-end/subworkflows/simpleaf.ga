@@ -1,0 +1,464 @@
+{
+  "name": "nf-core/scrnaseq: Simpleaf (Alevin-fry)",
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "annotation": "Build Piscem/Salmon index, quantify single-cell FASTQ reads with Alevin-fry via Simpleaf, and perform QCatch quality assessment",
+  "tags": [
+    "single-cell",
+    "transcriptomics",
+    "nf-core",
+    "nf-core/scrnaseq"
+  ],
+  "license": "MIT",
+  "release": "0.1.0",
+  "uuid": "7e93d7ee-7e1d-4dec-aa80-e9a1dce498fd",
+  "creator": [
+    {
+      "name": "nf-core",
+      "url": "https://nf-co.re",
+      "class": "Organization"
+    },
+    {
+      "name": "Rand Zoabi",
+      "class": "Person"
+    },
+    {
+      "name": "Intergalactic Workflow Commission",
+      "url": "https://galaxyproject.org/iwc",
+      "class": "Organization"
+    }
+  ],
+  "comments": [],
+  "steps": {
+    "0": {
+      "id": 0,
+      "name": "reads",
+      "type_": "data_collection_input",
+      "label": "reads",
+      "annotation": "Paired-end single-cell FASTQ reads",
+      "tool_state": {
+        "name": "reads",
+        "collection_type": "paired"
+      },
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "1": {
+      "id": 1,
+      "name": "fasta",
+      "type_": "data_input",
+      "label": "fasta",
+      "annotation": "Reference genome FASTA sequence file",
+      "tool_state": {
+        "name": "fasta",
+        "format": [
+          "fasta"
+        ]
+      },
+      "position": {
+        "top": 10,
+        "left": 10
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "2": {
+      "id": 2,
+      "name": "gtf",
+      "type_": "data_input",
+      "label": "gtf",
+      "annotation": "Gene annotation file in GTF format",
+      "tool_state": {
+        "name": "gtf",
+        "format": [
+          "gtf"
+        ]
+      },
+      "position": {
+        "top": 20,
+        "left": 20
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "3": {
+      "id": 3,
+      "name": "whitelist",
+      "type_": "data_input",
+      "label": "whitelist",
+      "annotation": "Whitelist of valid cell barcodes",
+      "tool_state": {
+        "name": "whitelist",
+        "format": [
+          "txt"
+        ]
+      },
+      "position": {
+        "top": 30,
+        "left": 30
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "whitelist",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "4": {
+      "id": 4,
+      "name": "chemistry",
+      "type_": "parameter_input",
+      "label": "chemistry",
+      "annotation": "10x Chromium chemistry (10xv2, 10xv3, dropseq)",
+      "tool_state": {
+        "name": "chemistry",
+        "parameter_type": "text",
+        "default": "10xv2"
+      },
+      "position": {
+        "top": 40,
+        "left": 40
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "chemistry",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "5": {
+      "id": 5,
+      "name": "resolution",
+      "type_": "parameter_input",
+      "label": "resolution",
+      "annotation": "UMI deduplication algorithm (cr-like, parsimony, trivial)",
+      "tool_state": {
+        "name": "resolution",
+        "parameter_type": "text",
+        "default": "cr-like"
+      },
+      "position": {
+        "top": 50,
+        "left": 50
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resolution",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "6": {
+      "id": 6,
+      "name": "Simpleaf Index",
+      "type_": "tool",
+      "label": "simpleaf_index",
+      "annotation": "Build Piscem / Salmon reference index and transcript-to-gene mapping",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 60,
+        "left": 60
+      },
+      "input_connections": {
+        "fasta": [
+          {
+            "id": 1,
+            "output_name": "output"
+          }
+        ],
+        "gtf": [
+          {
+            "id": 2,
+            "output_name": "output"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "Simpleaf Index Archive (.tar.gz)",
+          "output_name": "index_archive"
+        },
+        {
+          "label": "Simpleaf Transcript-to-Gene Mapping (t2g.tsv)",
+          "output_name": "t2g"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "Simpleaf Index",
+        "id": "simpleaf-index",
+        "version": "0.19.5",
+        "description": "Build Piscem / Salmon reference index and transcript-to-gene mapping for single-cell quantification",
+        "container": "quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0",
+        "shell_command": "set -euo pipefail\nexport ALEVIN_FRY_HOME=\"$PWD/af_home\"\nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\nsimpleaf index \\\n  --threads \\${GALAXY_SLOTS:-4} \\\n  --fasta '$(inputs.fasta.path)' \\\n  --gtf '$(inputs.gtf.path)' \\\n  -o af_index\n\ntar -czf index.tar.gz -C af_index index ref\ncp af_index/ref/t2g_3col.tsv t2g.tsv 2>/dev/null || cp af_index/ref/t2g.tsv t2g.tsv 2>/dev/null || true\n",
+        "inputs": [
+          {
+            "name": "fasta",
+            "type": "data",
+            "format": "fasta",
+            "label": "Genome Reference FASTA"
+          },
+          {
+            "name": "gtf",
+            "type": "data",
+            "format": "gtf",
+            "label": "Gene Annotation GTF"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "index_archive",
+            "type": "data",
+            "format": "tar",
+            "from_work_dir": "index.tar.gz",
+            "label": "Simpleaf Index Archive (.tar.gz)"
+          },
+          {
+            "name": "t2g",
+            "type": "data",
+            "format": "tabular",
+            "from_work_dir": "t2g.tsv",
+            "label": "Simpleaf Transcript-to-Gene Mapping (t2g.tsv)"
+          }
+        ]
+      }
+    },
+    "7": {
+      "id": 7,
+      "name": "Simpleaf Quant",
+      "type_": "tool",
+      "label": "simpleaf_quant",
+      "annotation": "Quantify single-cell FASTQ reads with simpleaf quant",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 70,
+        "left": 70
+      },
+      "input_connections": {
+        "reads": [
+          {
+            "id": 0,
+            "output_name": "output"
+          }
+        ],
+        "index_archive": [
+          {
+            "id": 6,
+            "output_name": "index_archive"
+          }
+        ],
+        "t2g": [
+          {
+            "id": 6,
+            "output_name": "t2g"
+          }
+        ],
+        "whitelist": [
+          {
+            "id": 3,
+            "output_name": "output"
+          }
+        ],
+        "chemistry": [
+          {
+            "id": 4,
+            "output_name": "output"
+          }
+        ],
+        "resolution": [
+          {
+            "id": 5,
+            "output_name": "output"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "Simpleaf AnnData Matrix (H5AD)",
+          "output_name": "h5ad"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "Simpleaf Quant",
+        "id": "simpleaf-quant",
+        "version": "0.19.5",
+        "description": "Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry",
+        "container": "quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0",
+        "shell_command": "set -euo pipefail\nexport ALEVIN_FRY_HOME=\"$PWD/af_home\"\nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar -xzf '$(inputs.index_archive.path)' -C af_index\n\nsimpleaf quant \\\n  --threads \\${GALAXY_SLOTS:-4} \\\n  --index af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\n  --chemistry '$(inputs.chemistry)' \\\n  --reads1 '$(inputs.reads.forward.path)' \\\n  --reads2 '$(inputs.reads.reverse.path)' \\\n  --unfiltered-pl '$(inputs.whitelist.path)' \\\n  --resolution '$(inputs.resolution)' \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\n",
+        "inputs": [
+          {
+            "name": "reads",
+            "type": "data_collection",
+            "collection_type": "paired",
+            "label": "Paired Single-Cell Reads"
+          },
+          {
+            "name": "index_archive",
+            "type": "data",
+            "format": "tar",
+            "label": "Simpleaf Index Archive (.tar.gz)"
+          },
+          {
+            "name": "t2g",
+            "type": "data",
+            "format": "tabular",
+            "label": "Simpleaf Transcript-to-Gene Mapping (t2g.tsv)"
+          },
+          {
+            "name": "whitelist",
+            "type": "data",
+            "format": "txt",
+            "label": "Barcode Whitelist"
+          },
+          {
+            "name": "chemistry",
+            "type": "text",
+            "default": "10xv2",
+            "label": "Chemistry / Protocol"
+          },
+          {
+            "name": "resolution",
+            "type": "text",
+            "default": "cr-like",
+            "label": "UMI Resolution Strategy"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "h5ad",
+            "type": "data",
+            "format": "h5ad",
+            "from_work_dir": "out_quants/quants.h5ad",
+            "label": "Simpleaf AnnData Matrix (H5AD)"
+          }
+        ]
+      }
+    },
+    "8": {
+      "id": 8,
+      "name": "QCatch Quality Assessment",
+      "type_": "tool",
+      "label": "qcatch",
+      "annotation": "Evaluate quality metrics and filter empty droplets with QCatch",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 80,
+        "left": 80
+      },
+      "input_connections": {
+        "h5ad": [
+          {
+            "id": 7,
+            "output_name": "h5ad"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "QCatch Filtered AnnData Matrix (H5AD)",
+          "output_name": "filtered_h5ad"
+        },
+        {
+          "label": "QCatch HTML Quality Report",
+          "output_name": "report"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "QCatch Quality Assessment",
+        "id": "qcatch",
+        "version": "0.2.14",
+        "description": "Quality assessment and empty droplet filtering for single-cell Alevin-fry quantifications",
+        "container": "quay.io/biocontainers/qcatch:0.2.14--pyhdfd78af_0",
+        "shell_command": "set -euo pipefail\nqcatch \\\n  --input '$(inputs.h5ad.path)' \\\n  --output qcatch_out \\\n  --save_filtered_h5ad \\\n  --export_summary_table\n",
+        "inputs": [
+          {
+            "name": "h5ad",
+            "type": "data",
+            "format": "h5ad",
+            "label": "Simpleaf / Alevin-fry AnnData Output (H5AD)"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "report",
+            "type": "data",
+            "format": "html",
+            "from_work_dir": "qcatch_out/QCatch_report.html",
+            "label": "QCatch HTML Quality Report"
+          },
+          {
+            "name": "filtered_h5ad",
+            "type": "data",
+            "format": "h5ad",
+            "from_work_dir": "qcatch_out/filtered_quants.h5ad",
+            "label": "QCatch Filtered AnnData Matrix (H5AD)"
+          },
+          {
+            "name": "metrics",
+            "type": "data",
+            "format": "csv",
+            "from_work_dir": "qcatch_out/summary_table.csv",
+            "label": "QCatch Metrics Summary Table (CSV)"
+          }
+        ]
+      }
+    }
+  }
+}

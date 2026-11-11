@@ -1,0 +1,391 @@
+{
+  "name": "nf-core/scrnaseq: Kallisto-Bustools",
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "annotation": "Build reference index and quantify single-cell RNA-seq FASTQ reads using kallisto and bustools (kb-python)",
+  "tags": [
+    "single-cell",
+    "transcriptomics",
+    "nf-core",
+    "nf-core/scrnaseq"
+  ],
+  "license": "MIT",
+  "release": "0.1.0",
+  "uuid": "f7a91532-fa2a-4277-97c3-45be73df912e",
+  "creator": [
+    {
+      "name": "nf-core",
+      "url": "https://nf-co.re",
+      "class": "Organization"
+    },
+    {
+      "name": "Rand Zoabi",
+      "class": "Person"
+    },
+    {
+      "name": "Intergalactic Workflow Commission",
+      "url": "https://galaxyproject.org/iwc",
+      "class": "Organization"
+    }
+  ],
+  "comments": [],
+  "steps": {
+    "0": {
+      "id": 0,
+      "name": "reads",
+      "type_": "data_collection_input",
+      "label": "reads",
+      "annotation": "Paired-end single-cell FASTQ reads (Read 1 barcode/UMI, Read 2 cDNA)",
+      "tool_state": {
+        "name": "reads",
+        "collection_type": "paired"
+      },
+      "position": {
+        "top": 0,
+        "left": 0
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "1": {
+      "id": 1,
+      "name": "fasta",
+      "type_": "data_input",
+      "label": "fasta",
+      "annotation": "Reference genome FASTA sequence file",
+      "tool_state": {
+        "name": "fasta",
+        "format": [
+          "fasta"
+        ]
+      },
+      "position": {
+        "top": 10,
+        "left": 10
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "2": {
+      "id": 2,
+      "name": "gtf",
+      "type_": "data_input",
+      "label": "gtf",
+      "annotation": "Gene annotation file in GTF format",
+      "tool_state": {
+        "name": "gtf",
+        "format": [
+          "gtf"
+        ]
+      },
+      "position": {
+        "top": 20,
+        "left": 20
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "3": {
+      "id": 3,
+      "name": "technology",
+      "type_": "parameter_input",
+      "label": "technology",
+      "annotation": "Barcode chemistry (e.g. 10XV2, 10XV3, DROPSEQ)",
+      "tool_state": {
+        "name": "technology",
+        "parameter_type": "text",
+        "default": "10XV2"
+      },
+      "position": {
+        "top": 30,
+        "left": 30
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "technology",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "4": {
+      "id": 4,
+      "name": "workflow_mode",
+      "type_": "parameter_input",
+      "label": "workflow_mode",
+      "annotation": "Kallisto quantification mode (standard, lamanno, nucleus)",
+      "tool_state": {
+        "name": "workflow_mode",
+        "parameter_type": "text",
+        "default": "standard"
+      },
+      "position": {
+        "top": 40,
+        "left": 40
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "workflow_mode",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "5": {
+      "id": 5,
+      "name": "Kallisto-Bustools Reference",
+      "type_": "tool",
+      "label": "kb_ref",
+      "annotation": "Build kallisto index and transcript-to-gene mapping from genome FASTA and GTF",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 50,
+        "left": 50
+      },
+      "input_connections": {
+        "fasta": [
+          {
+            "id": 1,
+            "output_name": "output"
+          }
+        ],
+        "gtf": [
+          {
+            "id": 2,
+            "output_name": "output"
+          }
+        ],
+        "workflow_mode": [
+          {
+            "id": 4,
+            "output_name": "output"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "Kallisto Index (.idx)",
+          "output_name": "index"
+        },
+        {
+          "label": "Transcript-to-Gene Mapping (t2g.txt)",
+          "output_name": "t2g"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "Kallisto-Bustools Reference",
+        "id": "kb-ref",
+        "version": "0.28.2",
+        "description": "Generate kallisto index and transcript-to-gene mappings from genome FASTA and GTF",
+        "container": "quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2",
+        "shell_command": "set -euo pipefail\nkb ref \\\n  -i kb_ref_out.idx \\\n  -g t2g.txt \\\n  -f1 cdna.fa \\\n  --workflow '$(inputs.workflow_mode)' \\\n  '$(inputs.fasta.path)' \\\n  '$(inputs.gtf.path)'\n",
+        "inputs": [
+          {
+            "name": "fasta",
+            "type": "data",
+            "format": "fasta",
+            "label": "Genome Reference FASTA"
+          },
+          {
+            "name": "gtf",
+            "type": "data",
+            "format": "gtf",
+            "label": "Gene Annotation GTF"
+          },
+          {
+            "name": "workflow_mode",
+            "type": "text",
+            "default": "standard",
+            "label": "Workflow Mode"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "index",
+            "type": "data",
+            "format": "binary",
+            "from_work_dir": "kb_ref_out.idx",
+            "label": "Kallisto Index (.idx)"
+          },
+          {
+            "name": "t2g",
+            "type": "data",
+            "format": "tabular",
+            "from_work_dir": "t2g.txt",
+            "label": "Transcript-to-Gene Mapping (t2g.txt)"
+          },
+          {
+            "name": "cdna",
+            "type": "data",
+            "format": "fasta",
+            "from_work_dir": "cdna.fa",
+            "label": "Extracted cDNA FASTA"
+          }
+        ]
+      }
+    },
+    "6": {
+      "id": 6,
+      "name": "Kallisto-Bustools Count",
+      "type_": "tool",
+      "label": "kb_count",
+      "annotation": "Quantify single-cell FASTQ reads against kallisto index",
+      "tool_state": {
+        "__page__": 0
+      },
+      "position": {
+        "top": 60,
+        "left": 60
+      },
+      "input_connections": {
+        "reads": [
+          {
+            "id": 0,
+            "output_name": "output"
+          }
+        ],
+        "index": [
+          {
+            "id": 5,
+            "output_name": "index"
+          }
+        ],
+        "t2g": [
+          {
+            "id": 5,
+            "output_name": "t2g"
+          }
+        ],
+        "technology": [
+          {
+            "id": 3,
+            "output_name": "output"
+          }
+        ],
+        "workflow_mode": [
+          {
+            "id": 4,
+            "output_name": "output"
+          }
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "workflow_outputs": [
+        {
+          "label": "Raw Gene Expression Matrix (MTX)",
+          "output_name": "raw_matrix"
+        },
+        {
+          "label": "Raw Cell Barcodes (TSV)",
+          "output_name": "raw_barcodes"
+        },
+        {
+          "label": "Raw Gene Features (TSV)",
+          "output_name": "raw_features"
+        }
+      ],
+      "post_job_actions": {},
+      "tool_representation": {
+        "class": "GalaxyUserTool",
+        "name": "Kallisto-Bustools Count",
+        "id": "kb-count",
+        "version": "0.28.2",
+        "description": "Quantify single-cell RNA-seq FASTQ reads using kallisto and bustools",
+        "container": "quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2",
+        "shell_command": "set -euo pipefail\nkb count \\\n  -t \\${GALAXY_SLOTS:-4} \\\n  -i '$(inputs.index.path)' \\\n  -g '$(inputs.t2g.path)' \\\n  -x '$(inputs.technology)' \\\n  --workflow '$(inputs.workflow_mode)' \\\n  -o output_counts \\\n  '$(inputs.reads.forward.path)' '$(inputs.reads.reverse.path)'\n\nmkdir -p out_solo/raw out_solo/filtered\nif [ -d output_counts/counts_unfiltered ]; then\n  cp output_counts/counts_unfiltered/*.mtx out_solo/raw/matrix.mtx 2>/dev/null || true\n  cp output_counts/counts_unfiltered/*.barcodes.txt out_solo/raw/barcodes.tsv 2>/dev/null || true\n  cp output_counts/counts_unfiltered/*.genes.txt out_solo/raw/features.tsv 2>/dev/null || true\nfi\nif [ -d output_counts/counts_filtered ]; then\n  cp output_counts/counts_filtered/*.mtx out_solo/filtered/matrix.mtx 2>/dev/null || true\n  cp output_counts/counts_filtered/*.barcodes.txt out_solo/filtered/barcodes.tsv 2>/dev/null || true\n  cp output_counts/counts_filtered/*.genes.txt out_solo/filtered/features.tsv 2>/dev/null || true\nfi\n",
+        "inputs": [
+          {
+            "name": "reads",
+            "type": "data_collection",
+            "collection_type": "paired",
+            "label": "Paired Single-Cell Reads"
+          },
+          {
+            "name": "index",
+            "type": "data",
+            "format": "binary",
+            "label": "Kallisto Index (.idx)"
+          },
+          {
+            "name": "t2g",
+            "type": "data",
+            "format": "tabular",
+            "label": "Transcript-to-Gene Mapping (t2g.txt)"
+          },
+          {
+            "name": "technology",
+            "type": "text",
+            "default": "10XV2",
+            "label": "Single-Cell Technology"
+          },
+          {
+            "name": "workflow_mode",
+            "type": "text",
+            "default": "standard",
+            "label": "Workflow Mode"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "raw_matrix",
+            "type": "data",
+            "format": "mtx",
+            "from_work_dir": "out_solo/raw/matrix.mtx",
+            "label": "Raw Count Matrix (MTX)"
+          },
+          {
+            "name": "raw_barcodes",
+            "type": "data",
+            "format": "tsv",
+            "from_work_dir": "out_solo/raw/barcodes.tsv",
+            "label": "Raw Cell Barcodes (TSV)"
+          },
+          {
+            "name": "raw_features",
+            "type": "data",
+            "format": "tsv",
+            "from_work_dir": "out_solo/raw/features.tsv",
+            "label": "Raw Gene Features (TSV)"
+          }
+        ]
+      }
+    }
+  }
+}

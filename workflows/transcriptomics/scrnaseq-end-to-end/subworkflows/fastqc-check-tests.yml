@@ -1,0 +1,31 @@
+- doc: Test fastqc-check subworkflow
+  job:
+    reads:
+      class: Collection
+      collection_type: list:paired
+      elements:
+        - class: Collection
+          collection_type: paired
+          identifier: Sample_X
+          elements:
+            - identifier: forward
+              class: File
+              location: https://raw.githubusercontent.com/nf-core/test-datasets/scrnaseq/testdata/cellranger/Sample_X_S1_L001_R1_001.fastq.gz
+              filetype: fastqsanger.gz
+            - identifier: reverse
+              class: File
+              location: https://raw.githubusercontent.com/nf-core/test-datasets/scrnaseq/testdata/cellranger/Sample_X_S1_L001_R2_001.fastq.gz
+              filetype: fastqsanger.gz
+  outputs:
+    FastQC Web Reports:
+      element_tests:
+        Sample_X:
+          asserts:
+            has_text:
+              text: "FastQC"
+    FastQC Raw Data:
+      element_tests:
+        Sample_X:
+          asserts:
+            has_text:
+              text: "Basic Statistics"

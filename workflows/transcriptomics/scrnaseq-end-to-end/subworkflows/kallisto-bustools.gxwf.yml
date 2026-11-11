@@ -1,0 +1,190 @@
+class: GalaxyWorkflow
+label: "nf-core/scrnaseq: Kallisto-Bustools"
+doc: "Build reference index and quantify single-cell RNA-seq FASTQ reads using kallisto and bustools (kb-python)"
+release: "0.1.0"
+license: MIT
+tags:
+  - single-cell
+  - transcriptomics
+  - nf-core
+  - nf-core/scrnaseq
+creator:
+  - class: Organization
+    name: "nf-core"
+    url: "https://nf-co.re"
+  - class: Person
+    name: "Rand Zoabi"
+  - class: Organization
+    name: "Intergalactic Workflow Commission"
+    url: "https://galaxyproject.org/iwc"
+inputs:
+  reads:
+    type: data_collection
+    collection_type: paired
+    label: Paired Single-Cell Reads
+    doc: Paired-end single-cell FASTQ reads (Read 1 barcode/UMI, Read 2 cDNA)
+  fasta:
+    type: data
+    format: fasta
+    label: Genome Reference FASTA
+    doc: Reference genome FASTA sequence file
+  gtf:
+    type: data
+    format: gtf
+    label: Gene Annotation GTF
+    doc: Gene annotation file in GTF format
+  technology:
+    type: text
+    default: 10XV2
+    label: Single-Cell Technology
+    doc: Barcode chemistry (e.g. 10XV2, 10XV3, DROPSEQ)
+  workflow_mode:
+    type: text
+    default: standard
+    label: Workflow Mode
+    doc: Kallisto quantification mode (standard, lamanno, nucleus)
+outputs:
+  Raw Gene Expression Matrix (MTX):
+    outputSource: kb_count/raw_matrix
+    label: Raw Gene Expression Matrix (MTX)
+  Raw Cell Barcodes (TSV):
+    outputSource: kb_count/raw_barcodes
+    label: Raw Cell Barcodes (TSV)
+  Raw Gene Features (TSV):
+    outputSource: kb_count/raw_features
+    label: Raw Gene Features (TSV)
+  Kallisto Index (.idx):
+    outputSource: kb_ref/index
+    label: Kallisto Index (.idx)
+  Transcript-to-Gene Mapping (t2g.txt):
+    outputSource: kb_ref/t2g
+    label: Transcript-to-Gene Mapping (t2g.txt)
+steps:
+  - id: kb_ref
+    label: kb_ref
+    doc: Build kallisto index and transcript-to-gene mapping from genome FASTA and GTF
+    run:
+      class: GalaxyUserTool
+      id: kb-ref
+      version: "0.28.2"
+      name: Kallisto-Bustools Reference
+      description: Generate kallisto index and transcript-to-gene mappings from genome FASTA and GTF
+      container: quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2
+      shell_command: |
+        set -euo pipefail
+        kb ref \
+          -i kb_ref_out.idx \
+          -g t2g.txt \
+          -f1 cdna.fa \
+          --workflow '$(inputs.workflow_mode)' \
+          '$(inputs.fasta.path)' \
+          '$(inputs.gtf.path)'
+      inputs:
+        - name: fasta
+          type: data
+          format: fasta
+          label: Genome Reference FASTA
+        - name: gtf
+          type: data
+          format: gtf
+          label: Gene Annotation GTF
+        - name: workflow_mode
+          type: text
+          default: standard
+          label: Workflow Mode
+      outputs:
+        - name: index
+          type: data
+          format: binary
+          from_work_dir: kb_ref_out.idx
+          label: Kallisto Index (.idx)
+        - name: t2g
+          type: data
+          format: tabular
+          from_work_dir: t2g.txt
+          label: Transcript-to-Gene Mapping (t2g.txt)
+        - name: cdna
+          type: data
+          format: fasta
+          from_work_dir: cdna.fa
+          label: Extracted cDNA FASTA
+    in:
+      fasta: fasta
+      gtf: gtf
+      workflow_mode: workflow_mode
+
+  - id: kb_count
+    label: kb_count
+    doc: Quantify single-cell FASTQ reads against kallisto index
+    run:
+      class: GalaxyUserTool
+      id: kb-count
+      version: "0.28.2"
+      name: Kallisto-Bustools Count
+      description: Quantify single-cell RNA-seq FASTQ reads using kallisto and bustools
+      container: quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2
+      shell_command: |
+        set -euo pipefail
+        kb count \
+          -t \${GALAXY_SLOTS:-4} \
+          -i '$(inputs.index.path)' \
+          -g '$(inputs.t2g.path)' \
+          -x '$(inputs.technology)' \
+          --workflow '$(inputs.workflow_mode)' \
+          -o output_counts \
+          '$(inputs.reads.forward.path)' '$(inputs.reads.reverse.path)'
+        
+        mkdir -p out_solo/raw out_solo/filtered
+        if [ -d output_counts/counts_unfiltered ]; then
+          cp output_counts/counts_unfiltered/*.mtx out_solo/raw/matrix.mtx 2>/dev/null || true
+          cp output_counts/counts_unfiltered/*.barcodes.txt out_solo/raw/barcodes.tsv 2>/dev/null || true
+          cp output_counts/counts_unfiltered/*.genes.txt out_solo/raw/features.tsv 2>/dev/null || true
+        fi
+        if [ -d output_counts/counts_filtered ]; then
+          cp output_counts/counts_filtered/*.mtx out_solo/filtered/matrix.mtx 2>/dev/null || true
+          cp output_counts/counts_filtered/*.barcodes.txt out_solo/filtered/barcodes.tsv 2>/dev/null || true
+          cp output_counts/counts_filtered/*.genes.txt out_solo/filtered/features.tsv 2>/dev/null || true
+        fi
+      inputs:
+        - name: reads
+          type: data_collection
+          collection_type: paired
+          label: Paired Single-Cell Reads
+        - name: index
+          type: data
+          format: binary
+          label: Kallisto Index (.idx)
+        - name: t2g
+          type: data
+          format: tabular
+          label: Transcript-to-Gene Mapping (t2g.txt)
+        - name: technology
+          type: text
+          default: 10XV2
+          label: Single-Cell Technology
+        - name: workflow_mode
+          type: text
+          default: standard
+          label: Workflow Mode
+      outputs:
+        - name: raw_matrix
+          type: data
+          format: mtx
+          from_work_dir: out_solo/raw/matrix.mtx
+          label: Raw Count Matrix (MTX)
+        - name: raw_barcodes
+          type: data
+          format: tsv
+          from_work_dir: out_solo/raw/barcodes.tsv
+          label: Raw Cell Barcodes (TSV)
+        - name: raw_features
+          type: data
+          format: tsv
+          from_work_dir: out_solo/raw/features.tsv
+          label: Raw Gene Features (TSV)
+    in:
+      reads: reads
+      index: kb_ref/index
+      t2g: kb_ref/t2g
+      technology: technology
+      workflow_mode: workflow_mode

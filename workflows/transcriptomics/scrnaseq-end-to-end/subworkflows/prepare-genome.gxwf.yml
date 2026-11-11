@@ -45,7 +45,7 @@ steps:
       version: "0.1.0"
       name: Filter GTF by Genome Sequences
       description: Filter GTF file to include only annotations on sequences present in reference FASTA
-      container: python:3.11-slim
+      container: quay.io/biocontainers/python:3.13
       configfiles:
         - filename: params.json
           content: |

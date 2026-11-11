@@ -1,0 +1,61 @@
+- doc: Test Simpleaf end-to-end pipeline
+  job:
+    reads:
+      class: Collection
+      collection_type: list:paired
+      elements:
+        - class: Collection
+          identifier: Sample_X
+          type: paired
+          elements:
+            - class: File
+              identifier: forward
+              location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/Sample_X/fastqs/Sample_X_1.fastq.gz
+              filetype: fastqsanger.gz
+            - class: File
+              identifier: reverse
+              location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/Sample_X/fastqs/Sample_X_2.fastq.gz
+              filetype: fastqsanger.gz
+    fasta:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/GRCm38.p6.genome.chr19.fa
+      filetype: fasta
+    gtf:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/gencode.vM19.annotation.chr19.gtf
+      filetype: gtf
+    whitelist:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/whitelist/10x_V2_barcode_whitelist.txt.gz
+      filetype: txt
+    samplesheet:
+      class: File
+      location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/samplesheet.csv
+      filetype: csv
+  outputs:
+    Filtered Gene Annotation GTF:
+      asserts:
+        has_text:
+          text: "gene_id"
+    FastQC Web Reports:
+      element_tests:
+        Sample_X:
+          asserts:
+            has_size:
+              min: 1000
+    Combined Filtered AnnData Matrix:
+      asserts:
+        has_size:
+          min: 1000
+    Combined Seurat RDS Object:
+      asserts:
+        has_size:
+          min: 1000
+    Combined SingleCellExperiment RDS Object:
+      asserts:
+        has_size:
+          min: 1000
+    MultiQC Quality Report:
+      asserts:
+        has_text:
+          text: "MultiQC"

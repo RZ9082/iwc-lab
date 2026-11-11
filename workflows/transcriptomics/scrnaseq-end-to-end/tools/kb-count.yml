@@ -1,0 +1,99 @@
+class: GalaxyUserTool
+id: kb-count
+version: "0.28.2"
+name: Kallisto-Bustools Count
+description: Quantify single-cell RNA-seq FASTQ reads using kallisto and bustools
+container: quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2
+shell_command: |
+  set -euo pipefail
+  kb count \
+    -t \${GALAXY_SLOTS:-4} \
+    -i '$(inputs.index.path)' \
+    -g '$(inputs.t2g.path)' \
+    -x '$(inputs.technology)' \
+    --workflow '$(inputs.workflow_mode)' \
+    -o output_counts \
+    '$(inputs.reads.forward.path)' '$(inputs.reads.reverse.path)'
+  
+  # Ensure standard names for collection outputs
+  mkdir -p out_solo/raw out_solo/filtered
+  if [ -d output_counts/counts_unfiltered ]; then
+    cp output_counts/counts_unfiltered/*.mtx out_solo/raw/matrix.mtx 2>/dev/null || true
+    cp output_counts/counts_unfiltered/*.barcodes.txt out_solo/raw/barcodes.tsv 2>/dev/null || true
+    cp output_counts/counts_unfiltered/*.genes.txt out_solo/raw/features.tsv 2>/dev/null || true
+  fi
+  if [ -d output_counts/counts_filtered ]; then
+    cp output_counts/counts_filtered/*.mtx out_solo/filtered/matrix.mtx 2>/dev/null || true
+    cp output_counts/counts_filtered/*.barcodes.txt out_solo/filtered/barcodes.tsv 2>/dev/null || true
+    cp output_counts/counts_filtered/*.genes.txt out_solo/filtered/features.tsv 2>/dev/null || true
+  fi
+inputs:
+  - name: reads
+    type: data_collection
+    collection_type: paired
+    label: Paired Single-Cell Reads (Read 1 Barcode/UMI, Read 2 cDNA)
+  - name: index
+    type: data
+    format: binary
+    label: Kallisto Index (.idx)
+  - name: t2g
+    type: data
+    format: tabular
+    label: Transcript-to-Gene Mapping (t2g.txt)
+  - name: technology
+    type: select
+    default: 10XV2
+    label: Single-Cell Technology / Chemistry
+    options:
+      - [10x Genomics Chromium v2, 10XV2]
+      - [10x Genomics Chromium v3, 10XV3]
+      - [Drop-seq, DROPSEQ]
+      - [inDrop v1, INDROPV1]
+      - [inDrop v2, INDROPV2]
+      - [CEL-Seq, CELSEQ]
+      - [CEL-Seq2, CELSEQ2]
+      - [SureCell, SURECELL]
+  - name: workflow_mode
+    type: select
+    default: standard
+    label: Workflow Mode
+    options:
+      - [Standard, standard]
+      - [Lamanno, lamanno]
+      - [Nucleus, nucleus]
+outputs:
+  - name: raw_matrix
+    type: data
+    format: mtx
+    from_work_dir: out_solo/raw/matrix.mtx
+    label: Raw Count Matrix (MTX)
+  - name: raw_barcodes
+    type: data
+    format: tsv
+    from_work_dir: out_solo/raw/barcodes.tsv
+    label: Raw Cell Barcodes (TSV)
+  - name: raw_features
+    type: data
+    format: tsv
+    from_work_dir: out_solo/raw/features.tsv
+    label: Raw Gene Features (TSV)
+  - name: filtered_matrix
+    type: data
+    format: mtx
+    from_work_dir: out_solo/filtered/matrix.mtx
+    label: Filtered Count Matrix (MTX)
+    optional: true
+  - name: filtered_barcodes
+    type: data
+    format: tsv
+    from_work_dir: out_solo/filtered/barcodes.tsv
+    label: Filtered Cell Barcodes (TSV)
+    optional: true
+  - name: filtered_features
+    type: data
+    format: tsv
+    from_work_dir: out_solo/filtered/features.tsv
+    label: Filtered Gene Features (TSV)
+    optional: true
+help: |
+  Quantifies single-cell RNA-seq FASTQ reads into gene expression matrices using kb count.
