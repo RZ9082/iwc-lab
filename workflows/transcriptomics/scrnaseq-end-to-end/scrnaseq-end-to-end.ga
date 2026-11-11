@@ -576,11 +576,15 @@
         "container": "quay.io/biocontainers/mulled-v2-c89532d7d58608b69c1a896707ec4cf926b98182:f42f8452ef30fd9df25b4e403c103977bc4c90df-0",
         "configfiles": [
           {
+            "filename": "params.json",
+            "content": "{\"h5ad\": $(JSON.stringify(inputs.h5ad.path))}\n"
+          },
+          {
             "filename": "convert.R",
-            "content": "library(reticulate)\nlibrary(sceasy)\nlibrary(Seurat)\nlibrary(SingleCellExperiment)\n\ninput_path <- \"$(inputs.h5ad.path)\"\ncat(\"Reading and converting AnnData H5AD to Seurat from:\", input_path, \"\\n\")\nsceasy::convertFormat(input_path, from = \"anndata\", to = \"seurat\", outFile = \"matrix.seurat.rds\")\ncat(\"Saved matrix.seurat.rds\\n\")\n\ncat(\"Converting Seurat to SingleCellExperiment object...\\n\")\nsrt <- readRDS(\"matrix.seurat.rds\")\nsce <- as.SingleCellExperiment(srt)\nsaveRDS(sce, file = \"matrix.sce.rds\")\ncat(\"Saved matrix.sce.rds\\n\")\n"
+            "content": "library(jsonlite)\nparams <- fromJSON(\"params.json\")\ninput_path <- params$h5ad\n\nTMP_DIR <- Sys.getenv(\"TMPDIR\", \"/tmp\")\nPYDIR <- file.path(TMP_DIR, paste0(\"pybin_\", Sys.getpid()))\ndir.create(PYDIR, showWarnings = FALSE, recursive = TRUE)\nfile.symlink(Sys.which(\"python\"), file.path(PYDIR, \"python\"))\nSys.setenv(RETICULATE_PYTHON = file.path(PYDIR, \"python\"))\n\nlibrary(reticulate)\nlibrary(sceasy)\nlibrary(Seurat)\nlibrary(SingleCellExperiment)\n\ncat(\"Reading and converting AnnData H5AD to Seurat from:\", input_path, \"\\n\")\nsceasy::convertFormat(input_path, from = \"anndata\", to = \"seurat\", outFile = \"matrix.seurat.rds\")\ncat(\"Saved matrix.seurat.rds\\n\")\n\ncat(\"Converting Seurat to SingleCellExperiment object...\\n\")\nsrt <- readRDS(\"matrix.seurat.rds\")\nsce <- as.SingleCellExperiment(srt)\nsaveRDS(sce, file = \"matrix.sce.rds\")\ncat(\"Saved matrix.sce.rds\\n\")\n"
           }
         ],
-        "shell_command": "set -euo pipefail\nTMP_DIR=\"${TMPDIR:-/tmp}\"\nPYDIR=\"$TMP_DIR/pybin_$$\"\nmkdir -p \"$PYDIR\"\nln -s \"$(which python)\" \"$PYDIR/python\"\nexport RETICULATE_PYTHON=\"$PYDIR/python\"\nRscript convert.R\n",
+        "shell_command": "Rscript convert.R",
         "inputs": [
           {
             "name": "h5ad",
