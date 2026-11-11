@@ -3,7 +3,7 @@ id: mtx-to-h5ad
 version: "0.1.0"
 name: Convert 10x MTX to AnnData H5AD
 description: Convert 10x Genomics MTX matrix, barcodes, and features into an AnnData H5AD object
-container: community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538
+container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
 configfiles:
   - filename: params.json
     content: |

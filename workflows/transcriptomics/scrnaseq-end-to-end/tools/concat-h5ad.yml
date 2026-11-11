@@ -3,7 +3,7 @@ id: concat-h5ad
 version: "0.1.0"
 name: Concatenate AnnData H5AD Files
 description: Combine multiple per-sample AnnData H5AD files into a merged dataset
-container: community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538
+container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
 configfiles:
   - filename: params.json
     content: |

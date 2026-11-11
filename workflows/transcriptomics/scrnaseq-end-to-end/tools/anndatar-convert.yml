@@ -3,28 +3,33 @@ id: anndatar-convert
 version: "0.1.0"
 name: Convert AnnData H5AD to Seurat and SingleCellExperiment
 description: Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats
-container: community.wave.seqera.io/library/bioconductor-anndatar_bioconductor-rhdf5_bioconductor-singlecellexperiment_r-seurat:a0f51df063bb9b2a
+container: quay.io/biocontainers/mulled-v2-c89532d7d58608b69c1a896707ec4cf926b98182:f42f8452ef30fd9df25b4e403c103977bc4c90df-0
 configfiles:
   - filename: convert.R
     content: |
-      library(anndataR)
-      library(SeuratObject)
+      library(reticulate)
+      library(sceasy)
+      library(Seurat)
       library(SingleCellExperiment)
 
       input_path <- "$(inputs.h5ad.path)"
-      cat("Reading AnnData H5AD from:", input_path, "\n")
-      adata <- read_h5ad(input_path)
-
-      cat("Converting to Seurat object...\n")
-      obj_seurat <- adata$as_Seurat()
-      saveRDS(obj_seurat, file = "matrix.seurat.rds")
+      cat("Reading and converting AnnData H5AD to Seurat from:", input_path, "\n")
+      sceasy::convertFormat(input_path, from = "anndata", to = "seurat", outFile = "matrix.seurat.rds")
       cat("Saved matrix.seurat.rds\n")
 
-      cat("Converting to SingleCellExperiment object...\n")
-      obj_sce <- adata$as_SingleCellExperiment()
-      saveRDS(obj_sce, file = "matrix.sce.rds")
+      cat("Converting Seurat to SingleCellExperiment object...\n")
+      srt <- readRDS("matrix.seurat.rds")
+      sce <- as.SingleCellExperiment(srt)
+      saveRDS(sce, file = "matrix.sce.rds")
       cat("Saved matrix.sce.rds\n")
-shell_command: Rscript convert.R
+shell_command: |
+  set -euo pipefail
+  TMP_DIR="${TMPDIR:-/tmp}"
+  PYDIR="$TMP_DIR/pybin_$$"
+  mkdir -p "$PYDIR"
+  ln -s "$(which python)" "$PYDIR/python"
+  export RETICULATE_PYTHON="$PYDIR/python"
+  Rscript convert.R
 inputs:
   - name: h5ad
     type: data

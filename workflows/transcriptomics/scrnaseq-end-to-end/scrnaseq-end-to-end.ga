@@ -181,11 +181,11 @@
       "post_job_actions": {},
       "tool_representation": {
         "class": "GalaxyUserTool",
-        "name": "Filter GTF by Genome Sequences",
         "id": "gtf-gene-filter",
         "version": "0.1.0",
+        "name": "Filter GTF by Genome Sequences",
         "description": "Filter GTF file to include only annotations on sequences present in reference FASTA",
-        "container": "python:3.11-slim",
+        "container": "quay.io/biocontainers/python:3.13",
         "configfiles": [
           {
             "filename": "params.json",
@@ -219,7 +219,11 @@
             "from_work_dir": "filtered_genes.gtf",
             "label": "Filtered Gene Annotation GTF"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Filters a GTF annotation file to retain only annotations for chromosomes or scaffolds\npresent in the provided FASTA genome sequence.\n\nThis matches the `GTF_GENE_FILTER` module in `nf-core/scrnaseq`.\n"
+        }
       }
     },
     "6": {
@@ -380,11 +384,11 @@
       "post_job_actions": {},
       "tool_representation": {
         "class": "GalaxyUserTool",
-        "name": "Convert 10x MTX to AnnData H5AD",
         "id": "mtx-to-h5ad",
         "version": "0.1.0",
+        "name": "Convert 10x MTX to AnnData H5AD",
         "description": "Convert 10x Genomics MTX matrix, barcodes, and features into an AnnData H5AD object",
-        "container": "community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538",
+        "container": "quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0",
         "configfiles": [
           {
             "filename": "params.json",
@@ -436,7 +440,11 @@
             "from_work_dir": "matrix.h5ad",
             "label": "AnnData Matrix (H5AD)"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Converts 10x Genomics format MTX files (matrix.mtx, barcodes.tsv, features.tsv)\ninto a standardized AnnData H5AD dataset.\n\nThis tool matches the `MTX_TO_H5AD` module from `nf-core/scrnaseq`.\n"
+        }
       }
     },
     "9": {
@@ -475,11 +483,11 @@
       "post_job_actions": {},
       "tool_representation": {
         "class": "GalaxyUserTool",
-        "name": "Concatenate AnnData H5AD Files",
         "id": "concat-h5ad",
         "version": "0.1.0",
+        "name": "Concatenate AnnData H5AD Files",
         "description": "Combine multiple per-sample AnnData H5AD files into a merged dataset",
-        "container": "community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538",
+        "container": "quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0",
         "configfiles": [
           {
             "filename": "params.json",
@@ -487,7 +495,7 @@
           },
           {
             "filename": "concat.py",
-            "content": "import os\nimport json\nfrom pathlib import Path\nimport pandas as pd\nimport scanpy as sc\nimport anndata as ad\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\ninput_type = params.get(\"input_type\") or \"filtered\"\nsamplesheet_path = params.get(\"samplesheet\")\n\ndict_of_h5ad = {}\nfor item in params[\"h5ads\"]:\n    p = item[\"path\"]\n    adata_sub = sc.read_h5ad(p)\n    if \"sample\" in adata_sub.obs.columns and len(adata_sub.obs[\"sample\"]) > 0:\n        sample_name = str(adata_sub.obs[\"sample\"].iloc[0])\n    else:\n        sample_name = os.path.splitext(os.path.basename(item.get(\"name\") or \"sample\"))[0]\n    key = f\"{sample_name}_{input_type}\"\n    dict_of_h5ad[key] = adata_sub\n\nprint(f\"Concatenating {len(dict_of_h5ad)} AnnData datasets: {list(dict_of_h5ad.keys())}...\")\nadata = ad.concat(dict_of_h5ad, label=\"sample\", merge=\"unique\", index_unique=\"_\")\n\nif samplesheet_path and os.path.exists(samplesheet_path):\n    try:\n        sep = \",\" if samplesheet_path.endswith(\".csv\") else \"\\t\"\n        df_samplesheet = pd.read_csv(samplesheet_path, sep=sep)\n        if \"sample\" in df_samplesheet.columns:\n            df_samplesheet = df_samplesheet.groupby([\"sample\"]).agg(lambda col: \",\".join(set(col.astype(str))))\n            adata.obs = adata.obs.join(df_samplesheet, on=\"sample\", how=\"left\").astype(str)\n            print(\"Joined samplesheet metadata into AnnData obs.\")\n    except Exception as e:\n        print(f\"Warning: could not process samplesheet: {e}\")\n\nout_file = \"combined_matrix.h5ad\"\nadata.write_h5ad(out_file)\nprint(f\"Successfully wrote combined AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}\")\n"
+            "content": "import os\nimport json\nfrom pathlib import Path\nimport pandas as pd\nimport scanpy as sc\nimport anndata as ad\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\ninput_type = params.get(\"input_type\") or \"filtered\"\nsamplesheet_path = params.get(\"samplesheet\")\n\ndict_of_h5ad = {}\nfor item in params[\"h5ads\"]:\n    p = item[\"path\"]\n    adata_sub = sc.read_h5ad(p)\n    # Infer sample name from adata.obs['sample'] or fallback to item name\n    if \"sample\" in adata_sub.obs.columns and len(adata_sub.obs[\"sample\"]) > 0:\n        sample_name = str(adata_sub.obs[\"sample\"].iloc[0])\n    else:\n        sample_name = os.path.splitext(os.path.basename(item.get(\"name\") or \"sample\"))[0]\n    key = f\"{sample_name}_{input_type}\"\n    dict_of_h5ad[key] = adata_sub\n\nprint(f\"Concatenating {len(dict_of_h5ad)} AnnData datasets: {list(dict_of_h5ad.keys())}...\")\nadata = ad.concat(dict_of_h5ad, label=\"sample\", merge=\"unique\", index_unique=\"_\")\n\nif samplesheet_path and os.path.exists(samplesheet_path):\n    try:\n        sep = \",\" if samplesheet_path.endswith(\".csv\") else \"\\t\"\n        df_samplesheet = pd.read_csv(samplesheet_path, sep=sep)\n        if \"sample\" in df_samplesheet.columns:\n            df_samplesheet = df_samplesheet.groupby([\"sample\"]).agg(lambda col: \",\".join(set(col.astype(str))))\n            adata.obs = adata.obs.join(df_samplesheet, on=\"sample\", how=\"left\").astype(str)\n            print(\"Joined samplesheet metadata into AnnData obs.\")\n    except Exception as e:\n        print(f\"Warning: could not process samplesheet: {e}\")\n\nout_file = \"combined_matrix.h5ad\"\nadata.write_h5ad(out_file)\nprint(f\"Successfully wrote combined AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}\")\n"
           }
         ],
         "shell_command": "python concat.py",
@@ -521,7 +529,11 @@
             "from_work_dir": "combined_matrix.h5ad",
             "label": "Combined AnnData Matrix (H5AD)"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Concatenates multiple AnnData H5AD files into a single unified AnnData file,\npreserving unique cell barcodes and merging gene features.\n\nMatches the `CONCAT_H5AD` module from `nf-core/scrnaseq`.\n"
+        }
       }
     },
     "10": {
@@ -558,18 +570,18 @@
       "post_job_actions": {},
       "tool_representation": {
         "class": "GalaxyUserTool",
-        "name": "Convert AnnData H5AD to Seurat and SingleCellExperiment",
         "id": "anndatar-convert",
         "version": "0.1.0",
+        "name": "Convert AnnData H5AD to Seurat and SingleCellExperiment",
         "description": "Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats",
-        "container": "community.wave.seqera.io/library/bioconductor-anndatar_bioconductor-rhdf5_bioconductor-singlecellexperiment_r-seurat:a0f51df063bb9b2a",
+        "container": "quay.io/biocontainers/mulled-v2-c89532d7d58608b69c1a896707ec4cf926b98182:f42f8452ef30fd9df25b4e403c103977bc4c90df-0",
         "configfiles": [
           {
             "filename": "convert.R",
-            "content": "library(anndataR)\nlibrary(SeuratObject)\nlibrary(SingleCellExperiment)\n\ninput_path <- \"$(inputs.h5ad.path)\"\ncat(\"Reading AnnData H5AD from:\", input_path, \"\\n\")\nadata <- read_h5ad(input_path)\n\ncat(\"Converting to Seurat object...\\n\")\nobj_seurat <- adata$as_Seurat()\nsaveRDS(obj_seurat, file = \"matrix.seurat.rds\")\ncat(\"Saved matrix.seurat.rds\\n\")\n\ncat(\"Converting to SingleCellExperiment object...\\n\")\nobj_sce <- adata$as_SingleCellExperiment()\nsaveRDS(obj_sce, file = \"matrix.sce.rds\")\ncat(\"Saved matrix.sce.rds\\n\")\n"
+            "content": "library(reticulate)\nlibrary(sceasy)\nlibrary(Seurat)\nlibrary(SingleCellExperiment)\n\ninput_path <- \"$(inputs.h5ad.path)\"\ncat(\"Reading and converting AnnData H5AD to Seurat from:\", input_path, \"\\n\")\nsceasy::convertFormat(input_path, from = \"anndata\", to = \"seurat\", outFile = \"matrix.seurat.rds\")\ncat(\"Saved matrix.seurat.rds\\n\")\n\ncat(\"Converting Seurat to SingleCellExperiment object...\\n\")\nsrt <- readRDS(\"matrix.seurat.rds\")\nsce <- as.SingleCellExperiment(srt)\nsaveRDS(sce, file = \"matrix.sce.rds\")\ncat(\"Saved matrix.sce.rds\\n\")\n"
           }
         ],
-        "shell_command": "Rscript convert.R",
+        "shell_command": "set -euo pipefail\nTMP_DIR=\"${TMPDIR:-/tmp}\"\nPYDIR=\"$TMP_DIR/pybin_$$\"\nmkdir -p \"$PYDIR\"\nln -s \"$(which python)\" \"$PYDIR/python\"\nexport RETICULATE_PYTHON=\"$PYDIR/python\"\nRscript convert.R\n",
         "inputs": [
           {
             "name": "h5ad",
@@ -593,7 +605,11 @@
             "from_work_dir": "matrix.sce.rds",
             "label": "SingleCellExperiment RDS Object"
           }
-        ]
+        ],
+        "help": {
+          "format": "markdown",
+          "content": "Converts an AnnData (H5AD) single-cell matrix into Seurat RDS and SingleCellExperiment RDS\nformats for downstream analysis in R.\n\nMatches the `ANNDATAR_CONVERT` module from `nf-core/scrnaseq`.\n"
+        }
       }
     },
     "11": {
