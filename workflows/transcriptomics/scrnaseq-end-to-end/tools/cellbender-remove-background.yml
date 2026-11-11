@@ -6,8 +6,9 @@ description: Eliminate ambient RNA and empty droplets from raw single-cell H5AD 
 container: quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0
 shell_command: |
   set -euo pipefail
+  ln -sf '$(inputs.h5ad.path)' input.h5ad
   cellbender remove-background \
-    --input '$(inputs.h5ad.path)' \
+    --input input.h5ad \
     --output cellbender_out.h5 \
     --fpr $(inputs.fpr || 0.01) \
     --epochs $(inputs.epochs || 150) \

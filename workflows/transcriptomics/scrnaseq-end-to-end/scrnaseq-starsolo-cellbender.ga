@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "557b2a9f-d30e-4748-99d0-4ed5777393c0",
+  "uuid": "9f6c5424-452a-49ff-9c69-552bc3afa151",
   "creator": [
     {
       "name": "nf-core",
@@ -455,7 +455,7 @@
         "version": "0.3.2",
         "description": "Eliminate ambient RNA and empty droplets from raw single-cell H5AD count matrices",
         "container": "quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0",
-        "shell_command": "set -euo pipefail\ncellbender remove-background \\\n  --input '$(inputs.h5ad.path)' \\\n  --output cellbender_out.h5 \\\n  --fpr $(inputs.fpr || 0.01) \\\n  --epochs $(inputs.epochs || 150) \\\n  --cpu-threads \\${GALAXY_SLOTS:-4}\n",
+        "shell_command": "set -euo pipefail\nln -sf '$(inputs.h5ad.path)' input.h5ad\ncellbender remove-background \\\n  --input input.h5ad \\\n  --output cellbender_out.h5 \\\n  --fpr $(inputs.fpr || 0.01) \\\n  --epochs $(inputs.epochs || 150) \\\n  --cpu-threads \\${GALAXY_SLOTS:-4}\n",
         "inputs": [
           {
             "name": "h5ad",
