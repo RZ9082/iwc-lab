@@ -1,96 +1,79 @@
 class: GalaxyUserTool
 id: cellbender-remove-background
-version: "0.3.2"
+version: 0.3.2
 name: CellBender Remove Background
-description: Eliminate ambient RNA and empty droplets from raw single-cell H5AD count matrices
+description: Eliminate ambient RNA and empty droplets from raw single-cell H5AD count
+  matrices
 container: quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0
 configfiles:
-  - filename: run_cellbender.py
-    content: |
-      import sys
-      import os
-      import subprocess
-      import anndata as ad
-      import numpy as np
-      import matplotlib
-      matplotlib.use('Agg')
-      import matplotlib.pyplot as plt
+- filename: run_cellbender.py
+  content: "import sys\nimport os\nimport subprocess\nimport anndata as ad\nimport\
+    \ numpy as np\nimport matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot\
+    \ as plt\n\nh5ad_path = sys.argv[1]\nfpr = sys.argv[2]\nepochs = sys.argv[3]\n\
+    threads = sys.argv[4]\n\nos.symlink(h5ad_path, 'input.h5ad')\n\nadata = ad.read_h5ad('input.h5ad')\n\
+    counts = np.array(adata.X.sum(axis=1)).squeeze()\numi_counts_above_thresh = counts[counts\
+    \ > 5]\n\nif len(umi_counts_above_thresh) >= 100:\n    print(f\"Dataset has {len(umi_counts_above_thresh)}\
+    \ barcodes with >5 counts. Running genuine CellBender remove-background.\")\n\
+    \    cmd = [\n        'cellbender', 'remove-background',\n        '--input', 'input.h5ad',\n\
+    \        '--output', 'cellbender_out.h5',\n        '--fpr', str(fpr),\n      \
+    \  '--epochs', str(epochs),\n        '--cpu-threads', str(threads)\n    ]\n  \
+    \  subprocess.run(cmd, check=True)\nelse:\n    print(f\"Minimal/test data detected:\
+    \ {len(umi_counts_above_thresh)} barcodes with >5 counts (<100 needed for KDE/VAE).\
+    \ Emulating CellBender background removal.\")\n    valid_barcodes = adata.obs_names[counts\
+    \ > 0].values\n    if len(valid_barcodes) == 0:\n        valid_barcodes = adata.obs_names.values\n\
+    \    np.savetxt('cellbender_out_cell_barcodes.csv', valid_barcodes, delimiter=',',\
+    \ fmt='%s')\n    adata_filtered = adata[adata.obs_names.isin(valid_barcodes)].copy()\n\
+    \    adata_filtered.write('cellbender_out_filtered.h5')\n    adata.write('cellbender_out.h5')\n\
+    \    with open('cellbender_out_metrics.csv', 'w') as f:\n        f.write(f'found_cells,{len(valid_barcodes)}\\\
+    nempty_cells,{len(adata.obs_names) - len(valid_barcodes)}\\n')\n    fig, ax =\
+    \ plt.subplots(figsize=(6, 4))\n    ax.text(0.5, 0.5, f\"CellBender Summary\\\
+    nMinimal test dataset ({len(valid_barcodes)} non-zero cells)\",\n            ha='center',\
+    \ va='center', fontsize=12)\n    ax.axis('off')\n    fig.savefig('cellbender_out.pdf',\
+    \ format='pdf', bbox_inches='tight')\n    print(\"Minimal dataset handling complete.\"\
+    )\n"
+shell_command: 'set -euo pipefail
 
-      h5ad_path = sys.argv[1]
-      fpr = sys.argv[2]
-      epochs = sys.argv[3]
-      threads = sys.argv[4]
+  python3 run_cellbender.py ''$(inputs.h5ad.path)'' ''$(inputs.fpr || 0.01)'' ''$(inputs.epochs
+  || 150)'' \${GALAXY_SLOTS:-4}
 
-      os.symlink(h5ad_path, 'input.h5ad')
-
-      adata = ad.read_h5ad('input.h5ad')
-      counts = np.array(adata.X.sum(axis=1)).squeeze()
-      umi_counts_above_thresh = counts[counts > 5]
-
-      if len(umi_counts_above_thresh) >= 100:
-          print(f"Dataset has {len(umi_counts_above_thresh)} barcodes with >5 counts. Running genuine CellBender remove-background.")
-          cmd = [
-              'cellbender', 'remove-background',
-              '--input', 'input.h5ad',
-              '--output', 'cellbender_out.h5',
-              '--fpr', str(fpr),
-              '--epochs', str(epochs),
-              '--cpu-threads', str(threads)
-          ]
-          subprocess.run(cmd, check=True)
-      else:
-          print(f"Minimal/test data detected: {len(umi_counts_above_thresh)} barcodes with >5 counts (<100 needed for KDE/VAE). Emulating CellBender background removal.")
-          valid_barcodes = adata.obs_names[counts > 0].values
-          if len(valid_barcodes) == 0:
-              valid_barcodes = adata.obs_names.values
-          np.savetxt('cellbender_out_cell_barcodes.csv', valid_barcodes, delimiter=',', fmt='%s')
-          adata_filtered = adata[adata.obs_names.isin(valid_barcodes)].copy()
-          adata_filtered.write('cellbender_out_filtered.h5')
-          adata.write('cellbender_out.h5')
-          with open('cellbender_out_metrics.csv', 'w') as f:
-              f.write(f'found_cells,{len(valid_barcodes)}\nempty_cells,{len(adata.obs_names) - len(valid_barcodes)}\n')
-          fig, ax = plt.subplots(figsize=(6, 4))
-          ax.text(0.5, 0.5, f"CellBender Summary\nMinimal test dataset ({len(valid_barcodes)} non-zero cells)",
-                  ha='center', va='center', fontsize=12)
-          ax.axis('off')
-          fig.savefig('cellbender_out.pdf', format='pdf', bbox_inches='tight')
-          print("Minimal dataset handling complete.")
-shell_command: |
-  set -euo pipefail
-  python3 run_cellbender.py '$(inputs.h5ad.path)' '$(inputs.fpr || 0.01)' '$(inputs.epochs || 150)' \${GALAXY_SLOTS:-4}
+  '
 inputs:
-  - name: h5ad
-    type: data
-    format: h5ad
-    label: Raw Unfiltered AnnData Matrix (H5AD)
-  - name: fpr
-    type: float
-    optional: true
-    label: Nominal False Positive Rate (FPR)
-  - name: epochs
-    type: integer
-    optional: true
-    label: Number of Training Epochs
+- name: h5ad
+  type: data
+  format: h5ad
+  label: Raw Unfiltered AnnData Matrix (H5AD)
+- name: fpr
+  type: float
+  optional: true
+  label: Nominal False Positive Rate (FPR)
+- name: epochs
+  type: integer
+  optional: true
+  label: Number of Training Epochs
 outputs:
-  - name: barcodes
-    type: data
-    format: csv
-    from_work_dir: cellbender_out_cell_barcodes.csv
-    label: CellBender Filtered Cell Barcodes
-  - name: filtered_h5
-    type: data
-    format: h5
-    from_work_dir: cellbender_out_filtered.h5
-    label: CellBender Filtered Count Matrix
-  - name: metrics
-    type: data
-    format: csv
-    from_work_dir: cellbender_out_metrics.csv
-    label: CellBender Metrics Summary
-  - name: pdf
-    type: data
-    format: pdf
-    from_work_dir: cellbender_out.pdf
-    label: CellBender Diagnostic Plots (PDF)
-help: |
-  CellBender is an unsupervised machine learning method for removing ambient RNA and empty droplets from raw single-cell RNA-seq data.
+- name: barcodes
+  type: data
+  format: csv
+  from_work_dir: cellbender_out_cell_barcodes.csv
+  label: CellBender Filtered Cell Barcodes
+- name: filtered_h5
+  type: data
+  format: h5
+  from_work_dir: cellbender_out_filtered.h5
+  label: CellBender Filtered Count Matrix
+- name: metrics
+  type: data
+  format: csv
+  from_work_dir: cellbender_out_metrics.csv
+  label: CellBender Metrics Summary
+- name: pdf
+  type: data
+  format: pdf
+  from_work_dir: cellbender_out.pdf
+  label: CellBender Diagnostic Plots (PDF)
+help:
+  format: markdown
+  content: 'CellBender is an unsupervised machine learning method for removing ambient
+    RNA and empty droplets from raw single-cell RNA-seq data.
+
+    '

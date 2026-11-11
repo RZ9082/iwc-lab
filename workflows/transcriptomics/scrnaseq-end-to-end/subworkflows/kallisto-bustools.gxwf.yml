@@ -73,8 +73,8 @@ steps:
       FASTA and GTF
     container: quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2
     shell_command: "set -euo pipefail\nkb ref \\\n  -i kb_ref_out.idx \\\n  -g t2g.txt\
-      \ \\\n  -f1 cdna.fa \\\n  --workflow '$(inputs.workflow_mode)' \\\n  '$(inputs.fasta.path)'\
-      \ \\\n  '$(inputs.gtf.path)'\n"
+      \ \\\n  -f1 cdna.fa \\\n  --workflow '$(inputs.workflow_mode || \"standard\"\
+      )' \\\n  '$(inputs.fasta.path)' \\\n  '$(inputs.gtf.path)'\n"
     inputs:
     - name: fasta
       type: data
@@ -85,16 +85,9 @@ steps:
       format: gtf
       label: Gene Annotation GTF
     - name: workflow_mode
-      type: select
-      default: standard
-      label: Workflow Mode
-      options:
-      - - Standard (mRNA expression)
-        - standard
-      - - Lamanno (RNA velocity)
-        - lamanno
-      - - Nucleus (Single-nuclei RNA-seq)
-        - nucleus
+      type: text
+      value: standard
+      label: Workflow Mode (standard, lamanno, nucleus)
     outputs:
     - name: index
       type: data
@@ -111,10 +104,10 @@ steps:
       format: fasta
       from_work_dir: cdna.fa
       label: Extracted cDNA FASTA
-    help: 'Builds a kallisto index and transcript-to-gene mapping (t2g) required for
-      single-cell quantification with kb count.
-
-      '
+    help:
+      format: markdown
+      content: Builds a kallisto index and transcript-to-gene mapping (t2g) required
+        for single-cell quantification with kb count.
   in:
     fasta: fasta
     gtf: gtf
@@ -222,23 +215,22 @@ steps:
       format: mtx
       from_work_dir: out_solo/filtered/matrix.mtx
       label: Filtered Count Matrix (MTX)
-      optional: true
     - name: filtered_barcodes
       type: data
       format: tsv
       from_work_dir: out_solo/filtered/barcodes.tsv
       label: Filtered Cell Barcodes (TSV)
-      optional: true
     - name: filtered_features
       type: data
       format: tsv
       from_work_dir: out_solo/filtered/features.tsv
       label: Filtered Gene Features (TSV)
-      optional: true
-    help: 'Quantifies single-cell RNA-seq FASTQ reads into gene expression matrices
-      using kb count.
+    help:
+      format: markdown
+      content: 'Quantifies single-cell RNA-seq FASTQ reads into gene expression matrices
+        using kb count.
 
-      '
+        '
   in:
     reads: reads
     index: kb_ref/index

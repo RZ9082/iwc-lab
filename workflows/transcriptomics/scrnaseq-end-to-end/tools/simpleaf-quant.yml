@@ -1,90 +1,66 @@
 class: GalaxyUserTool
 id: simpleaf-quant
-version: "0.19.5"
+version: 0.19.5
 name: Simpleaf Quant
-description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry
+description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping
+  and alevin-fry
 container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
 configfiles:
-  - filename: reads.json
-    content: |
-      $(JSON.stringify(inputs.reads))
-shell_command: |
-  set -euo pipefail
+- filename: reads.json
+  content: '$(JSON.stringify(inputs.reads))
 
-  # Extract forward and reverse read paths from reads.json without python dependency
-  READS=($(grep -o '/[^" ]*' reads.json | sort -u))
-  if [ ${#READS[@]} -lt 2 ]; then
-    echo "Error: Could not extract at least 2 read paths from reads.json" >&2
-    cat reads.json >&2
-    exit 1
-  fi
-  FWD="${READS[0]}"
-  REV="${READS[1]}"
-  echo "Found forward read: $FWD"
-  echo "Found reverse read: $REV"
-
-  export ALEVIN_FRY_HOME="$(pwd)/af_home"
-  mkdir -p "$ALEVIN_FRY_HOME"
-  simpleaf set-paths
-
-  mkdir -p af_index
-  tar -xzf '$(inputs.index_archive.path)' -C af_index
-
-  SLOTS="${GALAXY_SLOTS:-4}"
-  CHEMISTRY="$(inputs.chemistry || '10xv2')"
-  RESOLUTION="$(inputs.resolution || 'cr-like')"
-
-  mkdir -p af_quant_out
-  simpleaf quant \
-    --threads "$SLOTS" \
-    --index af_index/index \
-    --t2g-map '$(inputs.t2g.path)' \
-    --chemistry "$CHEMISTRY" \
-    --reads1 "$FWD" \
-    --reads2 "$REV" \
-    --unfiltered-pl '$(inputs.whitelist.path)' \
-    --resolution "$RESOLUTION" \
-    --anndata-out \
-    --output af_quant_out
-
-  mkdir -p out_quants
-  find af_quant_out -name "*.h5ad" -exec cp {} out_quants/quants.h5ad \;
-  if [ ! -f out_quants/quants.h5ad ]; then
-    echo "Error: quants.h5ad was not produced by simpleaf quant" >&2
-    ls -laR af_quant_out >&2
-    exit 1
-  fi
-  echo "Simpleaf quantification completed successfully."
+    '
+shell_command: "set -euo pipefail\n\n# Extract forward and reverse read paths from\
+  \ reads.json without python dependency\nREADS=($(grep -o '/[^\" ]*' reads.json |\
+  \ sort -u))\nif [ ${#READS[@]} -lt 2 ]; then\n  echo \"Error: Could not extract\
+  \ at least 2 read paths from reads.json\" >&2\n  cat reads.json >&2\n  exit 1\n\
+  fi\nFWD=\"${READS[0]}\"\nREV=\"${READS[1]}\"\necho \"Found forward read: $FWD\"\n\
+  echo \"Found reverse read: $REV\"\n\nexport ALEVIN_FRY_HOME=\"$(pwd)/af_home\"\n\
+  mkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar -xzf\
+  \ '$(inputs.index_archive.path)' -C af_index\n\nSLOTS=\"${GALAXY_SLOTS:-4}\"\nCHEMISTRY=\"\
+  $(inputs.chemistry || '10xv2')\"\nRESOLUTION=\"$(inputs.resolution || 'cr-like')\"\
+  \n\nmkdir -p af_quant_out\nsimpleaf quant \\\n  --threads \"$SLOTS\" \\\n  --index\
+  \ af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\n  --chemistry \"$CHEMISTRY\"\
+  \ \\\n  --reads1 \"$FWD\" \\\n  --reads2 \"$REV\" \\\n  --unfiltered-pl '$(inputs.whitelist.path)'\
+  \ \\\n  --resolution \"$RESOLUTION\" \\\n  --anndata-out \\\n  --output af_quant_out\n\
+  \nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad\
+  \ \\;\nif [ ! -f out_quants/quants.h5ad ]; then\n  echo \"Error: quants.h5ad was\
+  \ not produced by simpleaf quant\" >&2\n  ls -laR af_quant_out >&2\n  exit 1\nfi\n\
+  echo \"Simpleaf quantification completed successfully.\"\n"
 inputs:
-  - name: reads
-    type: data_collection
-    collection_type: paired
-    label: Paired Single-Cell Reads (Read 1 Barcode/UMI, Read 2 cDNA)
-  - name: index_archive
-    type: data
-    format: tar
-    label: Simpleaf Index Archive (.tar.gz)
-  - name: t2g
-    type: data
-    format: tabular
-    label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
-  - name: whitelist
-    type: data
-    format: txt
-    label: 10x Barcode Whitelist
-  - name: chemistry
-    type: text
-    value: 10xv2
-    label: Single-Cell Chemistry
-  - name: resolution
-    type: text
-    value: cr-like
-    label: UMI Resolution Mode (cr-like, trivial, etc.)
+- name: reads
+  type: data_collection
+  collection_type: paired
+  label: Paired Single-Cell Reads (Read 1 Barcode/UMI, Read 2 cDNA)
+- name: index_archive
+  type: data
+  format: tar
+  label: Simpleaf Index Archive (.tar.gz)
+- name: t2g
+  type: data
+  format: tabular
+  label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
+- name: whitelist
+  type: data
+  format: txt
+  label: 10x Barcode Whitelist
+- name: chemistry
+  type: text
+  value: 10xv2
+  label: Single-Cell Chemistry
+- name: resolution
+  type: text
+  value: cr-like
+  label: UMI Resolution Mode (cr-like, trivial, etc.)
 outputs:
-  - name: quants_h5ad
-    type: data
-    format: h5ad
-    from_work_dir: out_quants/quants.h5ad
-    label: Simpleaf AnnData Matrix (H5AD)
-help: |
-  Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry.
+- name: h5ad
+  type: data
+  format: h5ad
+  from_work_dir: out_quants/quants.h5ad
+  label: Simpleaf AnnData Matrix (H5AD)
+help:
+  format: markdown
+  content: 'Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and
+    alevin-fry.
+
+    '

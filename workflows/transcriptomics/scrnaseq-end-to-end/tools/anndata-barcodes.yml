@@ -1,63 +1,51 @@
 class: GalaxyUserTool
 id: anndata-barcodes
-version: "1.7.2"
+version: 1.7.2
 name: Filter AnnData by Barcodes
-description: Subset an AnnData H5AD matrix using a list of valid cell barcodes (e.g. from CellBender)
+description: Subset an AnnData H5AD matrix using a list of valid cell barcodes (e.g.
+  from CellBender)
 container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
 configfiles:
-  - filename: filter_barcodes.py
-    content: |
-      import sys
-      import pandas as pd
-      import anndata as ad
+- filename: filter_barcodes.py
+  content: "import sys\nimport pandas as pd\nimport anndata as ad\n\nbarcodes_file\
+    \ = sys.argv[1]\nh5ad_file = sys.argv[2]\nout_file = sys.argv[3]\n\nprint(f\"\
+    Reading barcodes from {barcodes_file}\")\ndf = pd.read_csv(barcodes_file, header=None)\n\
+    keep_barcodes = set(df[0].astype(str).str.strip().values)\nprint(f\"Found {len(keep_barcodes)}\
+    \ valid cell barcodes\")\n\nprint(f\"Loading AnnData from {h5ad_file}\")\nadata\
+    \ = ad.read_h5ad(h5ad_file)\nprint(f\"Original shape: {adata.shape}\")\n\n# Check\
+    \ barcode index matches\noverlap = set(adata.obs_names).intersection(keep_barcodes)\n\
+    if len(overlap) == 0:\n    # Try appending or stripping \"-1\" suffix\n    if\
+    \ any(bc.endswith(\"-1\") for bc in keep_barcodes):\n        keep_barcodes = {bc.replace(\"\
+    -1\", \"\") for bc in keep_barcodes}\n    else:\n        keep_barcodes = {f\"\
+    {bc}-1\" for bc in keep_barcodes}\n    overlap = set(adata.obs_names).intersection(keep_barcodes)\n\
+    \nprint(f\"Matching barcodes: {len(overlap)}\")\nvalid_indices = [idx for idx,\
+    \ name in enumerate(adata.obs_names) if name in keep_barcodes]\nadata_filtered\
+    \ = adata[valid_indices].copy()\nprint(f\"Filtered shape: {adata_filtered.shape}\"\
+    )\n\nadata_filtered.write_h5ad(out_file)\nprint(f\"Saved filtered AnnData to {out_file}\"\
+    )\n"
+shell_command: 'set -euo pipefail
 
-      barcodes_file = sys.argv[1]
-      h5ad_file = sys.argv[2]
-      out_file = sys.argv[3]
+  python3 filter_barcodes.py ''$(inputs.barcodes.path)'' ''$(inputs.h5ad.path)'' filtered_cellbender.h5ad
 
-      print(f"Reading barcodes from {barcodes_file}")
-      df = pd.read_csv(barcodes_file, header=None)
-      keep_barcodes = set(df[0].astype(str).str.strip().values)
-      print(f"Found {len(keep_barcodes)} valid cell barcodes")
-
-      print(f"Loading AnnData from {h5ad_file}")
-      adata = ad.read_h5ad(h5ad_file)
-      print(f"Original shape: {adata.shape}")
-
-      # Check barcode index matches
-      overlap = set(adata.obs_names).intersection(keep_barcodes)
-      if len(overlap) == 0:
-          # Try appending or stripping "-1" suffix
-          if any(bc.endswith("-1") for bc in keep_barcodes):
-              keep_barcodes = {bc.replace("-1", "") for bc in keep_barcodes}
-          else:
-              keep_barcodes = {f"{bc}-1" for bc in keep_barcodes}
-          overlap = set(adata.obs_names).intersection(keep_barcodes)
-
-      print(f"Matching barcodes: {len(overlap)}")
-      valid_indices = [idx for idx, name in enumerate(adata.obs_names) if name in keep_barcodes]
-      adata_filtered = adata[valid_indices].copy()
-      print(f"Filtered shape: {adata_filtered.shape}")
-
-      adata_filtered.write_h5ad(out_file)
-      print(f"Saved filtered AnnData to {out_file}")
-shell_command: |
-  set -euo pipefail
-  python3 filter_barcodes.py '$(inputs.barcodes.path)' '$(inputs.h5ad.path)' filtered_cellbender.h5ad
+  '
 inputs:
-  - name: h5ad
-    type: data
-    format: h5ad
-    label: Input AnnData Object (H5AD)
-  - name: barcodes
-    type: data
-    format: csv
-    label: Whitelist Cell Barcodes (CSV)
+- name: h5ad
+  type: data
+  format: h5ad
+  label: Input AnnData Object (H5AD)
+- name: barcodes
+  type: data
+  format: csv
+  label: Whitelist Cell Barcodes (CSV)
 outputs:
-  - name: filtered_h5ad
-    type: data
-    format: h5ad
-    from_work_dir: filtered_cellbender.h5ad
-    label: Barcode-Filtered AnnData Matrix (H5AD)
-help: |
-  Subsets an AnnData object by retaining only observations whose barcodes are present in the supplied barcode list (from CellBender or other filtering tools).
+- name: filtered_h5ad
+  type: data
+  format: h5ad
+  from_work_dir: filtered_cellbender.h5ad
+  label: Barcode-Filtered AnnData Matrix (H5AD)
+help:
+  format: markdown
+  content: 'Subsets an AnnData object by retaining only observations whose barcodes
+    are present in the supplied barcode list (from CellBender or other filtering tools).
+
+    '

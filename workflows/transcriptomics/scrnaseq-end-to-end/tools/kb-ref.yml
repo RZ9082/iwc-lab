@@ -10,7 +10,7 @@ shell_command: |
     -i kb_ref_out.idx \
     -g t2g.txt \
     -f1 cdna.fa \
-    --workflow '$(inputs.workflow_mode)' \
+    --workflow '$(inputs.workflow_mode || "standard")' \
     '$(inputs.fasta.path)' \
     '$(inputs.gtf.path)'
 inputs:
@@ -23,13 +23,9 @@ inputs:
     format: gtf
     label: Gene Annotation GTF
   - name: workflow_mode
-    type: select
-    default: standard
-    label: Workflow Mode
-    options:
-      - [Standard (mRNA expression), standard]
-      - [Lamanno (RNA velocity), lamanno]
-      - [Nucleus (Single-nuclei RNA-seq), nucleus]
+    type: text
+    value: standard
+    label: Workflow Mode (standard, lamanno, nucleus)
 outputs:
   - name: index
     type: data
@@ -46,5 +42,6 @@ outputs:
     format: fasta
     from_work_dir: cdna.fa
     label: Extracted cDNA FASTA
-help: |
-  Builds a kallisto index and transcript-to-gene mapping (t2g) required for single-cell quantification with kb count.
+help:
+  format: markdown
+  content: Builds a kallisto index and transcript-to-gene mapping (t2g) required for single-cell quantification with kb count.

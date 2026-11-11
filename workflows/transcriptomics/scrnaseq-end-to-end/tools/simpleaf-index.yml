@@ -1,42 +1,39 @@
 class: GalaxyUserTool
 id: simpleaf-index
-version: "0.19.5"
+version: 0.19.5
 name: Simpleaf Index
-description: Build Piscem / Salmon reference index and transcript-to-gene mapping for single-cell quantification
+description: Build Piscem / Salmon reference index and transcript-to-gene mapping
+  for single-cell quantification
 container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
-shell_command: |
-  set -euo pipefail
-  export ALEVIN_FRY_HOME="$PWD/af_home"
-  mkdir -p "$ALEVIN_FRY_HOME"
-  simpleaf set-paths
-  simpleaf index \
-    --threads \${GALAXY_SLOTS:-4} \
-    --fasta '$(inputs.fasta.path)' \
-    --gtf '$(inputs.gtf.path)' \
-    -o af_index
-  
-  # Archive index directory for transport between Galaxy steps
-  tar -czf index.tar.gz -C af_index index ref
-  cp af_index/ref/t2g_3col.tsv t2g.tsv 2>/dev/null || cp af_index/ref/t2g.tsv t2g.tsv 2>/dev/null || true
+shell_command: "set -euo pipefail\nexport ALEVIN_FRY_HOME=\"$PWD/af_home\"\nmkdir\
+  \ -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\nsimpleaf index \\\n  --threads \\\
+  ${GALAXY_SLOTS:-4} \\\n  --fasta '$(inputs.fasta.path)' \\\n  --gtf '$(inputs.gtf.path)'\
+  \ \\\n  -o af_index\n\n# Archive index directory for transport between Galaxy steps\n\
+  tar -czf index.tar.gz -C af_index index ref\ncp af_index/ref/t2g_3col.tsv t2g.tsv\
+  \ 2>/dev/null || cp af_index/ref/t2g.tsv t2g.tsv 2>/dev/null || true\n"
 inputs:
-  - name: fasta
-    type: data
-    format: fasta
-    label: Genome Reference FASTA
-  - name: gtf
-    type: data
-    format: gtf
-    label: Gene Annotation GTF
+- name: fasta
+  type: data
+  format: fasta
+  label: Genome Reference FASTA
+- name: gtf
+  type: data
+  format: gtf
+  label: Gene Annotation GTF
 outputs:
-  - name: index_archive
-    type: data
-    format: tar
-    from_work_dir: index.tar.gz
-    label: Simpleaf Index Archive (.tar.gz)
-  - name: t2g
-    type: data
-    format: tabular
-    from_work_dir: t2g.tsv
-    label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
-help: |
-  Constructs a Piscem / Salmon index and reference files needed for Alevin-fry quantification using Simpleaf.
+- name: index_archive
+  type: data
+  format: tar
+  from_work_dir: index.tar.gz
+  label: Simpleaf Index Archive (.tar.gz)
+- name: t2g
+  type: data
+  format: tabular
+  from_work_dir: t2g.tsv
+  label: Simpleaf Transcript-to-Gene Mapping (t2g.tsv)
+help:
+  format: markdown
+  content: 'Constructs a Piscem / Salmon index and reference files needed for Alevin-fry
+    quantification using Simpleaf.
+
+    '

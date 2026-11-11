@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "e12c1e90-eaab-4d4b-ab08-f5941daa7527",
+  "uuid": "763bf5f9-06ab-4885-a9ff-78db2b068c4c",
   "creator": [
     {
       "name": "nf-core",
@@ -191,7 +191,7 @@
         "version": "0.28.2",
         "description": "Generate kallisto index and transcript-to-gene mappings from genome FASTA and GTF",
         "container": "quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2",
-        "shell_command": "set -euo pipefail\nkb ref \\\n  -i kb_ref_out.idx \\\n  -g t2g.txt \\\n  -f1 cdna.fa \\\n  --workflow '$(inputs.workflow_mode)' \\\n  '$(inputs.fasta.path)' \\\n  '$(inputs.gtf.path)'\n",
+        "shell_command": "set -euo pipefail\nkb ref \\\n  -i kb_ref_out.idx \\\n  -g t2g.txt \\\n  -f1 cdna.fa \\\n  --workflow '$(inputs.workflow_mode || \"standard\")' \\\n  '$(inputs.fasta.path)' \\\n  '$(inputs.gtf.path)'\n",
         "inputs": [
           {
             "name": "fasta",
@@ -207,23 +207,9 @@
           },
           {
             "name": "workflow_mode",
-            "type": "select",
-            "default": "standard",
-            "label": "Workflow Mode",
-            "options": [
-              [
-                "Standard (mRNA expression)",
-                "standard"
-              ],
-              [
-                "Lamanno (RNA velocity)",
-                "lamanno"
-              ],
-              [
-                "Nucleus (Single-nuclei RNA-seq)",
-                "nucleus"
-              ]
-            ]
+            "type": "text",
+            "value": "standard",
+            "label": "Workflow Mode (standard, lamanno, nucleus)"
           }
         ],
         "outputs": [
@@ -249,7 +235,10 @@
             "label": "Extracted cDNA FASTA"
           }
         ],
-        "help": "Builds a kallisto index and transcript-to-gene mapping (t2g) required for single-cell quantification with kb count.\n"
+        "help": {
+          "format": "markdown",
+          "content": "Builds a kallisto index and transcript-to-gene mapping (t2g) required for single-cell quantification with kb count."
+        }
       }
     },
     "6": {
@@ -389,27 +378,27 @@
             "type": "data",
             "format": "mtx",
             "from_work_dir": "out_solo/filtered/matrix.mtx",
-            "label": "Filtered Count Matrix (MTX)",
-            "optional": true
+            "label": "Filtered Count Matrix (MTX)"
           },
           {
             "name": "filtered_barcodes",
             "type": "data",
             "format": "tsv",
             "from_work_dir": "out_solo/filtered/barcodes.tsv",
-            "label": "Filtered Cell Barcodes (TSV)",
-            "optional": true
+            "label": "Filtered Cell Barcodes (TSV)"
           },
           {
             "name": "filtered_features",
             "type": "data",
             "format": "tsv",
             "from_work_dir": "out_solo/filtered/features.tsv",
-            "label": "Filtered Gene Features (TSV)",
-            "optional": true
+            "label": "Filtered Gene Features (TSV)"
           }
         ],
-        "help": "Quantifies single-cell RNA-seq FASTQ reads into gene expression matrices using kb count.\n"
+        "help": {
+          "format": "markdown",
+          "content": "Quantifies single-cell RNA-seq FASTQ reads into gene expression matrices using kb count.\n"
+        }
       }
     }
   }

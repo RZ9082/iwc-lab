@@ -127,10 +127,12 @@ steps:
       format: pdf
       from_work_dir: cellbender_out.pdf
       label: CellBender Diagnostic Plots (PDF)
-    help: 'CellBender is an unsupervised machine learning method for removing ambient
-      RNA and empty droplets from raw single-cell RNA-seq data.
+    help:
+      format: markdown
+      content: 'CellBender is an unsupervised machine learning method for removing
+        ambient RNA and empty droplets from raw single-cell RNA-seq data.
 
-      '
+        '
   in:
     h5ad: raw_h5ad
     fpr: fpr
@@ -186,11 +188,13 @@ steps:
       format: h5ad
       from_work_dir: filtered_cellbender.h5ad
       label: Barcode-Filtered AnnData Matrix (H5AD)
-    help: 'Subsets an AnnData object by retaining only observations whose barcodes
-      are present in the supplied barcode list (from CellBender or other filtering
-      tools).
+    help:
+      format: markdown
+      content: 'Subsets an AnnData object by retaining only observations whose barcodes
+        are present in the supplied barcode list (from CellBender or other filtering
+        tools).
 
-      '
+        '
   in:
     h5ad: raw_h5ad
     barcodes: cellbender/barcodes

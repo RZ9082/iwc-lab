@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "a518d85f-3e2d-4a7c-9565-0e19a8068cd5",
+  "uuid": "3f74c1f7-7973-42bc-ad3c-6ae81004169e",
   "creator": [
     {
       "name": "nf-core",
@@ -208,7 +208,10 @@
             "label": "CellBender Diagnostic Plots (PDF)"
           }
         ],
-        "help": "CellBender is an unsupervised machine learning method for removing ambient RNA and empty droplets from raw single-cell RNA-seq data.\n"
+        "help": {
+          "format": "markdown",
+          "content": "CellBender is an unsupervised machine learning method for removing ambient RNA and empty droplets from raw single-cell RNA-seq data.\n"
+        }
       }
     },
     "4": {
@@ -282,7 +285,10 @@
             "label": "Barcode-Filtered AnnData Matrix (H5AD)"
           }
         ],
-        "help": "Subsets an AnnData object by retaining only observations whose barcodes are present in the supplied barcode list (from CellBender or other filtering tools).\n"
+        "help": {
+          "format": "markdown",
+          "content": "Subsets an AnnData object by retaining only observations whose barcodes are present in the supplied barcode list (from CellBender or other filtering tools).\n"
+        }
       }
     }
   }

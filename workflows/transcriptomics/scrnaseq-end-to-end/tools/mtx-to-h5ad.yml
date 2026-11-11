@@ -58,25 +58,46 @@ configfiles:
 
       first_cols = lines[0].strip().split("\t") if lines else []
       if len(first_cols) == 1:
-          print("Detected 1-column features list (Kallisto/Bustools). Formatting into 10x 3-column format.")
-          temp_feat = "features_3col.tsv"
-          with open(temp_feat, "w") as f_out:
-              for l in lines:
-                  gid = l.strip()
-                  f_out.write(f"{gid}\t{gid}\tGene Expression\n")
-          setup_input(temp_feat, "features.tsv")
+          print("Detected 1-column features list (Kallisto/Bustools format). Reading directly via sc.read_mtx...")
+          adata = sc.read_mtx(params["matrix"])
+          barcodes_src = params["barcodes"]
+          with open(barcodes_src, "rb") as bf:
+              b_gz = bf.read(2) == b"\x1f\x8b"
+          if b_gz:
+              with gzip.open(barcodes_src, "rt") as bf:
+                  barcodes_list = [l.strip() for l in bf if l.strip()]
+          else:
+              with open(barcodes_src, "rt") as bf:
+                  barcodes_list = [l.strip() for l in bf if l.strip()]
+          features_list = [l.strip() for l in lines if l.strip()]
+          if adata.shape == (len(barcodes_list), len(features_list)):
+              adata.obs_names = barcodes_list
+              adata.var_names = features_list
+          elif adata.shape == (len(features_list), len(barcodes_list)):
+              adata = adata.T
+              adata.obs_names = barcodes_list
+              adata.var_names = features_list
+          else:
+              print(f"Warning: dimension mismatch {adata.shape} vs ({len(barcodes_list)}, {len(features_list)})")
+              adata.obs_names = [f"cell_{i}" for i in range(adata.n_obs)]
+              adata.var_names = [f"gene_{i}" for i in range(adata.n_vars)]
+          adata.obs["sample"] = sample
+          adata.layers["count"] = adata.X.copy()
+          adata.var["gene_ids"] = adata.var_names
+          adata.var["gene_symbol"] = adata.var_names
+          adata.var["gene_versions"] = adata.var_names
+          adata.var.index = adata.var["gene_versions"].str.split(".").str[0].values
+          adata.var_names_make_unique()
       else:
           setup_input(feat_src, "features.tsv")
-
-      print(f"Reading 10x MTX from {mtx_dir} for sample {sample} ({input_type})...")
-      adata = sc.read_10x_mtx(mtx_dir)
-      adata.obs["sample"] = sample
-      adata.layers["count"] = adata.X.copy()
-
-      adata.var["gene_symbol"] = adata.var.index
-      adata.var["gene_versions"] = adata.var["gene_ids"]
-      adata.var.index = adata.var["gene_versions"].str.split(".").str[0].values
-      adata.var_names_make_unique()
+          print(f"Reading 10x MTX from {mtx_dir} for sample {sample} ({input_type})...")
+          adata = sc.read_10x_mtx(mtx_dir)
+          adata.obs["sample"] = sample
+          adata.layers["count"] = adata.X.copy()
+          adata.var["gene_symbol"] = adata.var.index
+          adata.var["gene_versions"] = adata.var["gene_ids"]
+          adata.var.index = adata.var["gene_versions"].str.split(".").str[0].values
+          adata.var_names_make_unique()
 
       out_file = "matrix.h5ad"
       adata.write_h5ad(out_file)
