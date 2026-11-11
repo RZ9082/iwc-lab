@@ -5,93 +5,56 @@ name: Simpleaf Quant
 description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry
 container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
 configfiles:
-  - filename: params.json
+  - filename: reads.json
     content: |
-      {
-        "reads": $(JSON.stringify(inputs.reads)),
-        "index_archive": $(JSON.stringify(inputs.index_archive.path)),
-        "t2g": $(JSON.stringify(inputs.t2g.path)),
-        "whitelist": $(JSON.stringify(inputs.whitelist.path)),
-        "chemistry": $(JSON.stringify(inputs.chemistry)),
-        "resolution": $(JSON.stringify(inputs.resolution))
-      }
-  - filename: run_simpleaf.py
-    content: |
-      import os
-      import sys
-      import json
-      import glob
-      import shutil
-      import subprocess
-
-      with open("params.json") as fh:
-          params = json.load(fh)
-
-      reads = params.get("reads")
-      paths = []
-      def find_paths(obj):
-          if isinstance(obj, str):
-              if obj.startswith("/") or ".dat" in obj or "fastq" in obj:
-                  paths.append(obj)
-          elif isinstance(obj, dict):
-              if "forward" in obj and "reverse" in obj:
-                  find_paths(obj["forward"])
-                  find_paths(obj["reverse"])
-              elif "1" in obj and "2" in obj:
-                  find_paths(obj["1"])
-                  find_paths(obj["2"])
-              elif "path" in obj and isinstance(obj["path"], str):
-                  paths.append(obj["path"])
-              else:
-                  for k in sorted(obj.keys()):
-                      find_paths(obj[k])
-          elif isinstance(obj, list):
-              for v in obj:
-                  find_paths(v)
-      find_paths(reads)
-      fwd = paths[0] if len(paths) > 0 else None
-      rev = paths[1] if len(paths) > 1 else None
-
-      if not fwd or not rev:
-          print(f"Error: Unable to identify forward and reverse read paths from input: {reads}", file=sys.stderr)
-          sys.exit(1)
-
-      os.environ["ALEVIN_FRY_HOME"] = os.path.join(os.getcwd(), "af_home")
-      os.makedirs(os.environ["ALEVIN_FRY_HOME"], exist_ok=True)
-      subprocess.run(["simpleaf", "set-paths"], check=True)
-
-      os.makedirs("af_index", exist_ok=True)
-      subprocess.run(["tar", "-xzf", params["index_archive"], "-C", "af_index"], check=True)
-
-      slots = os.environ.get("GALAXY_SLOTS", "4")
-      chem = params.get("chemistry") or "10xv2"
-      res_mode = params.get("resolution") or "cr-like"
-
-      cmd = [
-          "simpleaf", "quant",
-          "--threads", str(slots),
-          "--index", "af_index/index",
-          "--t2g-map", params["t2g"],
-          "--chemistry", chem,
-          "--reads1", fwd,
-          "--reads2", rev,
-          "--unfiltered-pl", params["whitelist"],
-          "--resolution", res_mode,
-          "--anndata-out",
-          "--output", "af_quant_out"
-      ]
-      print("Running simpleaf quant:", " ".join(cmd))
-      res = subprocess.run(cmd)
-      if res.returncode != 0:
-          sys.exit(res.returncode)
-
-      os.makedirs("out_quants", exist_ok=True)
-      for p in glob.glob("af_quant_out/**/*.h5ad", recursive=True):
-          shutil.copyfile(p, "out_quants/quants.h5ad")
-          break
+      $(JSON.stringify(inputs.reads))
 shell_command: |
   set -euo pipefail
-  python3 run_simpleaf.py
+
+  # Extract forward and reverse read paths from reads.json without python dependency
+  READS=($(grep -o '/[^" ]*' reads.json | sort -u))
+  if [ ${#READS[@]} -lt 2 ]; then
+    echo "Error: Could not extract at least 2 read paths from reads.json" >&2
+    cat reads.json >&2
+    exit 1
+  fi
+  FWD="${READS[0]}"
+  REV="${READS[1]}"
+  echo "Found forward read: $FWD"
+  echo "Found reverse read: $REV"
+
+  export ALEVIN_FRY_HOME="$(pwd)/af_home"
+  mkdir -p "$ALEVIN_FRY_HOME"
+  simpleaf set-paths
+
+  mkdir -p af_index
+  tar -xzf '$(inputs.index_archive.path)' -C af_index
+
+  SLOTS="${GALAXY_SLOTS:-4}"
+  CHEMISTRY="$(inputs.chemistry || '10xv2')"
+  RESOLUTION="$(inputs.resolution || 'cr-like')"
+
+  mkdir -p af_quant_out
+  simpleaf quant \
+    --threads "$SLOTS" \
+    --index af_index/index \
+    --t2g-map '$(inputs.t2g.path)' \
+    --chemistry "$CHEMISTRY" \
+    --reads1 "$FWD" \
+    --reads2 "$REV" \
+    --unfiltered-pl '$(inputs.whitelist.path)' \
+    --resolution "$RESOLUTION" \
+    --anndata-out \
+    --output af_quant_out
+
+  mkdir -p out_quants
+  find af_quant_out -name "*.h5ad" -exec cp {} out_quants/quants.h5ad \;
+  if [ ! -f out_quants/quants.h5ad ]; then
+    echo "Error: quants.h5ad was not produced by simpleaf quant" >&2
+    ls -laR af_quant_out >&2
+    exit 1
+  fi
+  echo "Simpleaf quantification completed successfully."
 inputs:
   - name: reads
     type: data_collection
@@ -108,20 +71,20 @@ inputs:
   - name: whitelist
     type: data
     format: txt
-    label: Barcode Whitelist
+    label: 10x Barcode Whitelist
   - name: chemistry
     type: text
     value: 10xv2
-    label: Chemistry / Protocol
+    label: Single-Cell Chemistry
   - name: resolution
     type: text
     value: cr-like
-    label: UMI Resolution Strategy
+    label: UMI Resolution Mode (cr-like, trivial, etc.)
 outputs:
-  - name: h5ad
+  - name: quants_h5ad
     type: data
     format: h5ad
     from_work_dir: out_quants/quants.h5ad
     label: Simpleaf AnnData Matrix (H5AD)
 help: |
-  Performs single-cell mapping and quantification using Piscem and Alevin-fry via the Simpleaf wrapper.
+  Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry.
