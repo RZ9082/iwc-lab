@@ -618,7 +618,7 @@
       "type": "tool",
       "label": "multiqc",
       "annotation": "Aggregate MultiQC report summarizing FastQC read quality and STARsolo alignment statistics",
-      "tool_state": "{\"__page__\": 0, \"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results_0\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"log\"}}, \"output_1\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"reads_per_gene\"}}, \"software\": \"rgrnastar\"}}, \"results_1\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"fastqc_data\"}}, \"software\": \"fastqc\"}}, \"title\": \"nf-core/scrnaseq Quality Report\"}",
+      "tool_state": "{\"__page__\": 0, \"comment\": \"\", \"export_plots\": false, \"flat\": false, \"title\": \"nf-core/scrnaseq Quality Report\", \"results\": [{\"software_cond\": {\"software\": \"rgrnastar\", \"output\": [{\"type\": {\"type\": \"log\", \"input\": {\"__class__\": \"ConnectedValue\"}}}, {\"type\": {\"type\": \"reads_per_gene\", \"input\": {\"__class__\": \"ConnectedValue\"}}}]}}, {\"software_cond\": {\"software\": \"fastqc\", \"output\": [{\"type\": {\"type\": \"fastqc_data\", \"input\": {\"__class__\": \"ConnectedValue\"}}}]}}]}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
       "tool_version": "1.35+galaxy4",
       "tool_shed_repository": {
