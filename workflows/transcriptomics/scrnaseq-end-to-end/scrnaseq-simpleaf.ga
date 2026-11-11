@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "1c36dc68-28f9-4d27-a37e-accf9ec5524a",
+  "uuid": "07139465-fafd-407b-a342-7b6ea4bbb92a",
   "creator": [
     {
       "name": "nf-core",
@@ -487,9 +487,15 @@
       "type": "tool",
       "label": "multiqc",
       "annotation": "Aggregate quality metrics across tools into an interactive HTML report",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"__page__\": 0, \"comment\": \"\", \"export_plots\": false, \"flat\": false, \"results_0\": {\"software_cond\": {\"output_0\": {\"type\": {\"input\": {\"__class__\": \"ConnectedValue\"}, \"type\": \"fastqc_data\"}}, \"software\": \"fastqc\"}}, \"title\": \"nf-core/scrnaseq Quality Report\"}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
       "tool_version": "1.35+galaxy4",
+      "tool_shed_repository": {
+        "name": "multiqc",
+        "changeset_revision": "97255f6fdf7e",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
       "position": {
         "left": 810,
         "top": 290
@@ -510,12 +516,7 @@
           "output_name": "html_report"
         }
       ],
-      "post_job_actions": {},
-      "in": {
-        "results_0|software_cond|software": {
-          "default": "fastqc"
-        }
-      }
+      "post_job_actions": {}
     },
     "11": {
       "id": 11,

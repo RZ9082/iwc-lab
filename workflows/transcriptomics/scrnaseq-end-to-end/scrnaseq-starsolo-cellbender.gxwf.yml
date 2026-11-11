@@ -409,13 +409,44 @@ steps:
     doc: Aggregate quality metrics across tools into an interactive HTML report
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4
     tool_version: 1.35+galaxy4
+    tool_shed_repository:
+      changeset_revision: 97255f6fdf7e
+      name: multiqc
+      owner: iuc
+      tool_shed: toolshed.g2.bx.psu.edu
     in:
-      results_0|software_cond|software:
-        default: star
-      results_0|software_cond|output_0|type|input: starsolo/output_stats
-      results_1|software_cond|software:
-        default: fastqc
+      results_0|software_cond|output_0|type|input: starsolo/output_log
+      results_0|software_cond|output_1|type|input: starsolo/reads_per_gene
       results_1|software_cond|output_0|type|input: fastqc/text_file
+    out:
+      html_report: html_report
+      stats: stats
+    state:
+      comment: ''
+      export_plots: false
+      flat: false
+      results_0:
+        software_cond:
+          output_0:
+            type:
+              input:
+                __class__: ConnectedValue
+              type: log
+          output_1:
+            type:
+              input:
+                __class__: ConnectedValue
+              type: reads_per_gene
+          software: rgrnastar
+      results_1:
+        software_cond:
+          output_0:
+            type:
+              input:
+                __class__: ConnectedValue
+              type: fastqc_data
+          software: fastqc
+      title: 'nf-core/scrnaseq Quality Report'
 
   - id: concat_h5ad
     label: concat_h5ad
