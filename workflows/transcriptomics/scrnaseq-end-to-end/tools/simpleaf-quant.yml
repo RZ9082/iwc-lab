@@ -28,35 +28,29 @@ configfiles:
           params = json.load(fh)
 
       reads = params.get("reads")
-      fwd, rev = None, None
-
-      if isinstance(reads, dict):
-          elements = reads.get("elements", [])
-          if elements:
-              if isinstance(elements[0], str):
-                  fwd = elements[0]
-                  if len(elements) > 1:
-                      rev = elements[1]
-              elif isinstance(elements[0], dict):
-                  for el in elements:
-                      ident = str(el.get("element_identifier") or el.get("identifier") or "")
-                      p = el.get("path")
-                      if ident.lower() in ["forward", "1", "r1"]:
-                          fwd = p
-                      elif ident.lower() in ["reverse", "2", "r2"]:
-                          rev = p
-                  if not fwd and len(elements) > 0:
-                      fwd = elements[0].get("path")
-                  if not rev and len(elements) > 1:
-                      rev = elements[1].get("path")
-          elif "forward" in reads and "reverse" in reads:
-              fwd = reads["forward"].get("path") if isinstance(reads["forward"], dict) else reads["forward"]
-              rev = reads["reverse"].get("path") if isinstance(reads["reverse"], dict) else reads["reverse"]
-      elif isinstance(reads, list):
-          if len(reads) > 0:
-              fwd = reads[0].get("path") if isinstance(reads[0], dict) else reads[0]
-          if len(reads) > 1:
-              rev = reads[1].get("path") if isinstance(reads[1], dict) else reads[1]
+      paths = []
+      def find_paths(obj):
+          if isinstance(obj, str):
+              if obj.startswith("/") or ".dat" in obj or "fastq" in obj:
+                  paths.append(obj)
+          elif isinstance(obj, dict):
+              if "forward" in obj and "reverse" in obj:
+                  find_paths(obj["forward"])
+                  find_paths(obj["reverse"])
+              elif "1" in obj and "2" in obj:
+                  find_paths(obj["1"])
+                  find_paths(obj["2"])
+              elif "path" in obj and isinstance(obj["path"], str):
+                  paths.append(obj["path"])
+              else:
+                  for k in sorted(obj.keys()):
+                      find_paths(obj[k])
+          elif isinstance(obj, list):
+              for v in obj:
+                  find_paths(v)
+      find_paths(reads)
+      fwd = paths[0] if len(paths) > 0 else None
+      rev = paths[1] if len(paths) > 1 else None
 
       if not fwd or not rev:
           print(f"Error: Unable to identify forward and reverse read paths from input: {reads}", file=sys.stderr)
