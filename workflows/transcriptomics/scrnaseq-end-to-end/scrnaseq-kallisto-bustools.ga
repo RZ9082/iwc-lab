@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "60dbf0bf-b7fd-424a-bc91-1de66bfc2228",
+  "uuid": "14c4bb62-8ed4-4615-9635-c7b8584bc778",
   "creator": [
     {
       "name": "nf-core",
@@ -355,7 +355,17 @@
         "version": "0.28.2",
         "description": "Quantify single-cell RNA-seq FASTQ reads using kallisto and bustools",
         "container": "quay.io/biocontainers/kb-python:0.28.2--pyhdfd78af_2",
-        "shell_command": "set -euo pipefail\nkb count \\\n  -t \\${GALAXY_SLOTS:-4} \\\n  -i '$(inputs.index.path)' \\\n  -g '$(inputs.t2g.path)' \\\n  -x 10XV2 \\\n  --workflow standard \\\n  -o output_counts \\\n  '$(inputs.reads.forward.path)' '$(inputs.reads.reverse.path)'\n\nmkdir -p out_solo/raw out_solo/filtered\nif [ -d output_counts/counts_unfiltered ]; then\n  cp output_counts/counts_unfiltered/*.mtx out_solo/raw/matrix.mtx 2>/dev/null || true\n  cp output_counts/counts_unfiltered/*.barcodes.txt out_solo/raw/barcodes.tsv 2>/dev/null || true\n  cp output_counts/counts_unfiltered/*.genes.txt out_solo/raw/features.tsv 2>/dev/null || true\nfi\nif [ -d output_counts/counts_filtered ]; then\n  cp output_counts/counts_filtered/*.mtx out_solo/filtered/matrix.mtx 2>/dev/null || true\n  cp output_counts/counts_filtered/*.barcodes.txt out_solo/filtered/barcodes.tsv 2>/dev/null || true\n  cp output_counts/counts_filtered/*.genes.txt out_solo/filtered/features.tsv 2>/dev/null || true\nfi\n",
+        "configfiles": [
+          {
+            "filename": "params.json",
+            "content": "{\n  \"reads\": $(JSON.stringify(inputs.reads)),\n  \"index\": $(JSON.stringify(inputs.index.path)),\n  \"t2g\": $(JSON.stringify(inputs.t2g.path)),\n  \"technology\": $(JSON.stringify(inputs.technology)),\n  \"workflow_mode\": $(JSON.stringify(inputs.workflow_mode))\n}\n"
+          },
+          {
+            "filename": "run_kb.py",
+            "content": "import os\nimport sys\nimport json\nimport glob\nimport shutil\nimport subprocess\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\nreads = params.get(\"reads\")\nfwd, rev = None, None\n\nif isinstance(reads, dict):\n    elements = reads.get(\"elements\", [])\n    if elements:\n        for el in elements:\n            ident = str(el.get(\"element_identifier\") or el.get(\"identifier\") or \"\")\n            p = el.get(\"path\")\n            if ident.lower() in [\"forward\", \"1\", \"r1\"]:\n                fwd = p\n            elif ident.lower() in [\"reverse\", \"2\", \"r2\"]:\n                rev = p\n        if not fwd and len(elements) > 0:\n            fwd = elements[0].get(\"path\")\n        if not rev and len(elements) > 1:\n            rev = elements[1].get(\"path\")\n    elif \"forward\" in reads and \"reverse\" in reads:\n        fwd = reads[\"forward\"].get(\"path\") if isinstance(reads[\"forward\"], dict) else reads[\"forward\"]\n        rev = reads[\"reverse\"].get(\"path\") if isinstance(reads[\"reverse\"], dict) else reads[\"reverse\"]\nelif isinstance(reads, list):\n    fwd = reads[0].get(\"path\") if isinstance(reads[0], dict) else reads[0]\n    rev = reads[1].get(\"path\") if isinstance(reads[1], dict) else reads[1]\n\nif not fwd or not rev:\n    print(f\"Error: Unable to identify forward and reverse read paths from input: {reads}\", file=sys.stderr)\n    sys.exit(1)\n\nidx = params[\"index\"]\nt2g = params[\"t2g\"]\ntech = params.get(\"technology\") or \"10XV2\"\nwf = params.get(\"workflow_mode\") or \"standard\"\nslots = os.environ.get(\"GALAXY_SLOTS\", \"4\")\n\ncmd = [\"kb\", \"count\", \"-t\", str(slots), \"-i\", idx, \"-g\", t2g, \"-x\", tech, \"--workflow\", wf, \"-o\", \"output_counts\", fwd, rev]\nprint(\"Running kb count:\", \" \".join(cmd))\nres = subprocess.run(cmd)\nif res.returncode != 0:\n    sys.exit(res.returncode)\n\nos.makedirs(\"out_solo/raw\", exist_ok=True)\nos.makedirs(\"out_solo/filtered\", exist_ok=True)\n\nfor pattern, dst in [\n    (\"output_counts/counts_unfiltered/*.mtx\", \"out_solo/raw/matrix.mtx\"),\n    (\"output_counts/counts_unfiltered/*.barcodes.txt\", \"out_solo/raw/barcodes.tsv\"),\n    (\"output_counts/counts_unfiltered/*.genes.txt\", \"out_solo/raw/features.tsv\"),\n    (\"output_counts/counts_filtered/*.mtx\", \"out_solo/filtered/matrix.mtx\"),\n    (\"output_counts/counts_filtered/*.barcodes.txt\", \"out_solo/filtered/barcodes.tsv\"),\n    (\"output_counts/counts_filtered/*.genes.txt\", \"out_solo/filtered/features.tsv\")\n]:\n    matches = glob.glob(pattern)\n    if matches:\n        shutil.copyfile(matches[0], dst)\n"
+          }
+        ],
+        "shell_command": "set -euo pipefail\npython3 run_kb.py\n",
         "inputs": [
           {
             "name": "reads",
@@ -374,6 +384,18 @@
             "type": "data",
             "format": "tabular",
             "label": "Transcript-to-Gene Mapping (t2g.txt)"
+          },
+          {
+            "name": "technology",
+            "type": "text",
+            "value": "10XV2",
+            "label": "Single-Cell Technology / Chemistry"
+          },
+          {
+            "name": "workflow_mode",
+            "type": "text",
+            "value": "standard",
+            "label": "Workflow Mode"
           }
         ],
         "outputs": [

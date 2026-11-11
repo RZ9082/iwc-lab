@@ -208,29 +208,93 @@ steps:
       name: Simpleaf Quant
       description: Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry
       container: quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0
+      configfiles:
+        - filename: params.json
+          content: |
+            {
+              "reads": $(JSON.stringify(inputs.reads)),
+              "index_archive": $(JSON.stringify(inputs.index_archive.path)),
+              "t2g": $(JSON.stringify(inputs.t2g.path)),
+              "whitelist": $(JSON.stringify(inputs.whitelist.path)),
+              "chemistry": $(JSON.stringify(inputs.chemistry)),
+              "resolution": $(JSON.stringify(inputs.resolution))
+            }
+        - filename: run_simpleaf.py
+          content: |
+            import os
+            import sys
+            import json
+            import glob
+            import shutil
+            import subprocess
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            reads = params.get("reads")
+            fwd, rev = None, None
+
+            if isinstance(reads, dict):
+                elements = reads.get("elements", [])
+                if elements:
+                    for el in elements:
+                        ident = str(el.get("element_identifier") or el.get("identifier") or "")
+                        p = el.get("path")
+                        if ident.lower() in ["forward", "1", "r1"]:
+                            fwd = p
+                        elif ident.lower() in ["reverse", "2", "r2"]:
+                            rev = p
+                    if not fwd and len(elements) > 0:
+                        fwd = elements[0].get("path")
+                    if not rev and len(elements) > 1:
+                        rev = elements[1].get("path")
+                elif "forward" in reads and "reverse" in reads:
+                    fwd = reads["forward"].get("path") if isinstance(reads["forward"], dict) else reads["forward"]
+                    rev = reads["reverse"].get("path") if isinstance(reads["reverse"], dict) else reads["reverse"]
+            elif isinstance(reads, list):
+                fwd = reads[0].get("path") if isinstance(reads[0], dict) else reads[0]
+                rev = reads[1].get("path") if isinstance(reads[1], dict) else reads[1]
+
+            if not fwd or not rev:
+                print(f"Error: Unable to identify forward and reverse read paths from input: {reads}", file=sys.stderr)
+                sys.exit(1)
+
+            os.environ["ALEVIN_FRY_HOME"] = os.path.join(os.getcwd(), "af_home")
+            os.makedirs(os.environ["ALEVIN_FRY_HOME"], exist_ok=True)
+            subprocess.run(["simpleaf", "set-paths"], check=True)
+
+            os.makedirs("af_index", exist_ok=True)
+            subprocess.run(["tar", "-xzf", params["index_archive"], "-C", "af_index"], check=True)
+
+            slots = os.environ.get("GALAXY_SLOTS", "4")
+            chem = params.get("chemistry") or "10xv2"
+            res_mode = params.get("resolution") or "cr-like"
+
+            cmd = [
+                "simpleaf", "quant",
+                "--threads", str(slots),
+                "--index", "af_index/index",
+                "--t2g-map", params["t2g"],
+                "--chemistry", chem,
+                "--reads1", fwd,
+                "--reads2", rev,
+                "--unfiltered-pl", params["whitelist"],
+                "--resolution", res_mode,
+                "--anndata-out",
+                "--output", "af_quant_out"
+            ]
+            print("Running simpleaf quant:", " ".join(cmd))
+            res = subprocess.run(cmd)
+            if res.returncode != 0:
+                sys.exit(res.returncode)
+
+            os.makedirs("out_quants", exist_ok=True)
+            for p in glob.glob("af_quant_out/**/*.h5ad", recursive=True):
+                shutil.copyfile(p, "out_quants/quants.h5ad")
+                break
       shell_command: |
         set -euo pipefail
-        export ALEVIN_FRY_HOME="$PWD/af_home"
-        mkdir -p "$ALEVIN_FRY_HOME"
-        simpleaf set-paths
-
-        mkdir -p af_index
-        tar -xzf '$(inputs.index_archive.path)' -C af_index
-
-        simpleaf quant \
-          --threads \${GALAXY_SLOTS:-4} \
-          --index af_index/index \
-          --t2g-map '$(inputs.t2g.path)' \
-          --chemistry 10xv2 \
-          --reads1 '$(inputs.reads.forward.path)' \
-          --reads2 '$(inputs.reads.reverse.path)' \
-          --unfiltered-pl '$(inputs.whitelist.path)' \
-          --resolution cr-like \
-          --anndata-out \
-          --output af_quant_out
-
-        mkdir -p out_quants
-        find af_quant_out -name "*.h5ad" -exec cp {} out_quants/quants.h5ad \;
+        python3 run_simpleaf.py
       inputs:
         - name: reads
           type: data_collection
@@ -248,6 +312,14 @@ steps:
           type: data
           format: txt
           label: Barcode Whitelist
+        - name: chemistry
+          type: text
+          value: 10xv2
+          label: Chemistry / Protocol
+        - name: resolution
+          type: text
+          value: cr-like
+          label: UMI Resolution Strategy
       outputs:
         - name: h5ad
           type: data

@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "41f47a92-60d2-4982-80fb-8d9c7b02597f",
+  "uuid": "8de39280-d9d8-4851-a49f-42b29348212f",
   "creator": [
     {
       "name": "nf-core",
@@ -305,7 +305,17 @@
         "version": "0.19.5",
         "description": "Quantify single-cell RNA-seq FASTQ reads using piscem/salmon mapping and alevin-fry",
         "container": "quay.io/biocontainers/simpleaf:0.19.5--ha6fb395_0",
-        "shell_command": "set -euo pipefail\nexport ALEVIN_FRY_HOME=\"$PWD/af_home\"\nmkdir -p \"$ALEVIN_FRY_HOME\"\nsimpleaf set-paths\n\nmkdir -p af_index\ntar -xzf '$(inputs.index_archive.path)' -C af_index\n\nsimpleaf quant \\\n  --threads \\${GALAXY_SLOTS:-4} \\\n  --index af_index/index \\\n  --t2g-map '$(inputs.t2g.path)' \\\n  --chemistry '$(inputs.chemistry)' \\\n  --reads1 '$(inputs.reads.forward.path)' \\\n  --reads2 '$(inputs.reads.reverse.path)' \\\n  --unfiltered-pl '$(inputs.whitelist.path)' \\\n  --resolution '$(inputs.resolution)' \\\n  --anndata-out \\\n  --output af_quant_out\n\nmkdir -p out_quants\nfind af_quant_out -name \"*.h5ad\" -exec cp {} out_quants/quants.h5ad \\;\n",
+        "configfiles": [
+          {
+            "filename": "params.json",
+            "content": "{\n  \"reads\": $(JSON.stringify(inputs.reads)),\n  \"index_archive\": $(JSON.stringify(inputs.index_archive.path)),\n  \"t2g\": $(JSON.stringify(inputs.t2g.path)),\n  \"whitelist\": $(JSON.stringify(inputs.whitelist.path)),\n  \"chemistry\": $(JSON.stringify(inputs.chemistry)),\n  \"resolution\": $(JSON.stringify(inputs.resolution))\n}\n"
+          },
+          {
+            "filename": "run_simpleaf.py",
+            "content": "import os\nimport sys\nimport json\nimport glob\nimport shutil\nimport subprocess\n\nwith open(\"params.json\") as fh:\n    params = json.load(fh)\n\nreads = params.get(\"reads\")\nfwd, rev = None, None\n\nif isinstance(reads, dict):\n    elements = reads.get(\"elements\", [])\n    if elements:\n        for el in elements:\n            ident = str(el.get(\"element_identifier\") or el.get(\"identifier\") or \"\")\n            p = el.get(\"path\")\n            if ident.lower() in [\"forward\", \"1\", \"r1\"]:\n                fwd = p\n            elif ident.lower() in [\"reverse\", \"2\", \"r2\"]:\n                rev = p\n        if not fwd and len(elements) > 0:\n            fwd = elements[0].get(\"path\")\n        if not rev and len(elements) > 1:\n            rev = elements[1].get(\"path\")\n    elif \"forward\" in reads and \"reverse\" in reads:\n        fwd = reads[\"forward\"].get(\"path\") if isinstance(reads[\"forward\"], dict) else reads[\"forward\"]\n        rev = reads[\"reverse\"].get(\"path\") if isinstance(reads[\"reverse\"], dict) else reads[\"reverse\"]\nelif isinstance(reads, list):\n    fwd = reads[0].get(\"path\") if isinstance(reads[0], dict) else reads[0]\n    rev = reads[1].get(\"path\") if isinstance(reads[1], dict) else reads[1]\n\nif not fwd or not rev:\n    print(f\"Error: Unable to identify forward and reverse read paths from input: {reads}\", file=sys.stderr)\n    sys.exit(1)\n\nos.environ[\"ALEVIN_FRY_HOME\"] = os.path.join(os.getcwd(), \"af_home\")\nos.makedirs(os.environ[\"ALEVIN_FRY_HOME\"], exist_ok=True)\nsubprocess.run([\"simpleaf\", \"set-paths\"], check=True)\n\nos.makedirs(\"af_index\", exist_ok=True)\nsubprocess.run([\"tar\", \"-xzf\", params[\"index_archive\"], \"-C\", \"af_index\"], check=True)\n\nslots = os.environ.get(\"GALAXY_SLOTS\", \"4\")\nchem = params.get(\"chemistry\") or \"10xv2\"\nres_mode = params.get(\"resolution\") or \"cr-like\"\n\ncmd = [\n    \"simpleaf\", \"quant\",\n    \"--threads\", str(slots),\n    \"--index\", \"af_index/index\",\n    \"--t2g-map\", params[\"t2g\"],\n    \"--chemistry\", chem,\n    \"--reads1\", fwd,\n    \"--reads2\", rev,\n    \"--unfiltered-pl\", params[\"whitelist\"],\n    \"--resolution\", res_mode,\n    \"--anndata-out\",\n    \"--output\", \"af_quant_out\"\n]\nprint(\"Running simpleaf quant:\", \" \".join(cmd))\nres = subprocess.run(cmd)\nif res.returncode != 0:\n    sys.exit(res.returncode)\n\nos.makedirs(\"out_quants\", exist_ok=True)\nfor p in glob.glob(\"af_quant_out/**/*.h5ad\", recursive=True):\n    shutil.copyfile(p, \"out_quants/quants.h5ad\")\n    break\n"
+          }
+        ],
+        "shell_command": "set -euo pipefail\npython3 run_simpleaf.py\n",
         "inputs": [
           {
             "name": "reads",
@@ -334,13 +344,13 @@
           {
             "name": "chemistry",
             "type": "text",
-            "default": "10xv2",
+            "value": "10xv2",
             "label": "Chemistry / Protocol"
           },
           {
             "name": "resolution",
             "type": "text",
-            "default": "cr-like",
+            "value": "cr-like",
             "label": "UMI Resolution Strategy"
           }
         ],
