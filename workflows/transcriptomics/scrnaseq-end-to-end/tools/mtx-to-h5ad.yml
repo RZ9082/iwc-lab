@@ -1,0 +1,94 @@
+class: GalaxyUserTool
+id: mtx-to-h5ad
+version: "0.1.0"
+name: Convert 10x MTX to AnnData H5AD
+description: Convert 10x Genomics MTX matrix, barcodes, and features into an AnnData H5AD object
+container: community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538
+configfiles:
+  - filename: params.json
+    content: |
+      {
+        "matrix": $(JSON.stringify(inputs.matrix.path)),
+        "barcodes": $(JSON.stringify(inputs.barcodes.path)),
+        "features": $(JSON.stringify(inputs.features.path)),
+        "sample": $(JSON.stringify(inputs.sample_name)),
+        "input_type": $(JSON.stringify(inputs.input_type))
+      }
+  - filename: convert.py
+    content: |
+      import os
+      import json
+      import shutil
+      import scanpy as sc
+
+      with open("params.json") as fh:
+          params = json.load(fh)
+
+      sample = params.get("sample") or "sample"
+      input_type = params.get("input_type") or "filtered"
+
+      mtx_dir = "solo_mtx_input"
+      os.makedirs(mtx_dir, exist_ok=True)
+
+      def setup_input(src, base_name):
+          with open(src, "rb") as f:
+              magic = f.read(2)
+          is_gz = (magic == b"\x1f\x8b")
+          ext = ".gz" if is_gz else ""
+          dest = os.path.join(mtx_dir, f"{base_name}{ext}")
+          if os.path.exists(dest):
+              os.remove(dest)
+          os.symlink(os.path.abspath(src), dest)
+
+      setup_input(params["matrix"], "matrix.mtx")
+      setup_input(params["barcodes"], "barcodes.tsv")
+      setup_input(params["features"], "features.tsv")
+
+      print(f"Reading 10x MTX from {mtx_dir} for sample {sample} ({input_type})...")
+      adata = sc.read_10x_mtx(mtx_dir)
+      adata.obs["sample"] = sample
+      adata.layers["count"] = adata.X.copy()
+
+      adata.var["gene_symbol"] = adata.var.index
+      adata.var["gene_versions"] = adata.var["gene_ids"]
+      adata.var.index = adata.var["gene_versions"].str.split(".").str[0].values
+      adata.var_names_make_unique()
+
+      out_file = "matrix.h5ad"
+      adata.write_h5ad(out_file)
+      print(f"Successfully wrote AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}")
+shell_command: python convert.py
+inputs:
+  - name: matrix
+    type: data
+    format: mtx
+    label: Count Matrix (MTX)
+  - name: barcodes
+    type: data
+    format: tabular,txt
+    label: Barcodes (TSV)
+  - name: features
+    type: data
+    format: tabular,txt
+    label: Features / Genes (TSV)
+  - name: sample_name
+    type: text
+    value: sample
+    label: Sample Identifier
+  - name: input_type
+    type: text
+    value: filtered
+    label: Matrix Type (raw or filtered)
+outputs:
+  - name: h5ad
+    type: data
+    format: h5ad
+    from_work_dir: matrix.h5ad
+    label: AnnData Matrix (H5AD)
+help:
+  format: markdown
+  content: |
+    Converts 10x Genomics format MTX files (matrix.mtx, barcodes.tsv, features.tsv)
+    into a standardized AnnData H5AD dataset.
+
+    This tool matches the `MTX_TO_H5AD` module from `nf-core/scrnaseq`.

@@ -1,0 +1,50 @@
+class: GalaxyUserTool
+id: anndatar-convert
+version: "0.1.0"
+name: Convert AnnData H5AD to Seurat and SingleCellExperiment
+description: Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats
+container: community.wave.seqera.io/library/bioconductor-anndatar_bioconductor-rhdf5_bioconductor-singlecellexperiment_r-seurat:a0f51df063bb9b2a
+configfiles:
+  - filename: convert.R
+    content: |
+      library(anndataR)
+      library(SeuratObject)
+      library(SingleCellExperiment)
+
+      input_path <- "$(inputs.h5ad.path)"
+      cat("Reading AnnData H5AD from:", input_path, "\n")
+      adata <- read_h5ad(input_path)
+
+      cat("Converting to Seurat object...\n")
+      obj_seurat <- adata$as_Seurat()
+      saveRDS(obj_seurat, file = "matrix.seurat.rds")
+      cat("Saved matrix.seurat.rds\n")
+
+      cat("Converting to SingleCellExperiment object...\n")
+      obj_sce <- adata$as_SingleCellExperiment()
+      saveRDS(obj_sce, file = "matrix.sce.rds")
+      cat("Saved matrix.sce.rds\n")
+shell_command: Rscript convert.R
+inputs:
+  - name: h5ad
+    type: data
+    format: h5ad
+    label: AnnData Input Matrix (H5AD)
+outputs:
+  - name: seurat_rds
+    type: data
+    format: rds
+    from_work_dir: matrix.seurat.rds
+    label: Seurat RDS Object
+  - name: sce_rds
+    type: data
+    format: rds
+    from_work_dir: matrix.sce.rds
+    label: SingleCellExperiment RDS Object
+help:
+  format: markdown
+  content: |
+    Converts an AnnData (H5AD) single-cell matrix into Seurat RDS and SingleCellExperiment RDS
+    formats for downstream analysis in R.
+
+    Matches the `ANNDATAR_CONVERT` module from `nf-core/scrnaseq`.

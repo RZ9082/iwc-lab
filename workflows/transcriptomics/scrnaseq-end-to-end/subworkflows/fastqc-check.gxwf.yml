@@ -1,0 +1,47 @@
+class: GalaxyWorkflow
+label: "nf-core/scrnaseq: FastQC Check"
+doc: "Per-sample read quality assessment using FastQC"
+release: "0.1.0"
+license: MIT
+tags:
+  - single-cell
+  - transcriptomics
+  - qc
+  - nf-core
+  - nf-core/scrnaseq
+creator:
+  - class: Organization
+    name: "nf-core"
+    url: "https://nf-co.re"
+  - class: Person
+    name: "Rand Zoabi"
+  - class: Organization
+    name: "Intergalactic Workflow Commission"
+    url: "https://github.com/galaxyproject/iwc"
+inputs:
+  reads:
+    type: collection
+    collection_type: "list:paired"
+    format: fastqsanger.gz
+    label: Paired-end sequencing reads
+    doc: Paired FastQ collection containing forward (R1) and reverse (R2) reads
+outputs:
+  FastQC Web Reports:
+    outputSource: fastqc/html_file
+    label: FastQC Web Reports
+  FastQC Raw Data:
+    outputSource: fastqc/text_file
+    label: FastQC Raw Data
+steps:
+  - id: fastqc
+    label: fastqc
+    doc: Per-sample quality control metrics using FastQC
+    tool_id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1
+    tool_version: 0.74+galaxy1
+    tool_shed_repository:
+      changeset_revision: 2c64fded1286
+      name: fastqc
+      owner: devteam
+      tool_shed: toolshed.g2.bx.psu.edu
+    in:
+      input_file: reads

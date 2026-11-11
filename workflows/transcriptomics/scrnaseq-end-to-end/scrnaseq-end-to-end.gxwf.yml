@@ -1,0 +1,542 @@
+class: GalaxyWorkflow
+label: Single-Cell RNA-Seq End-to-End Pipeline (STARsolo, AnnData, Seurat, SingleCellExperiment, MultiQC)
+doc: |
+  This workflow performs single-cell RNA-seq alignment with STARsolo, gene expression quantification,
+  AnnData and Seurat/SingleCellExperiment format conversion, and quality reporting matching nf-core/scrnaseq.
+release: '0.1.0'
+license: MIT
+tags:
+  - single-cell
+  - transcriptomics
+  - 10x-genomics
+  - star
+  - anndata
+  - seurat
+  - nf-core
+  - nf-core/scrnaseq
+creator:
+  - class: Organization
+    name: nf-core
+    url: https://nf-co.re/scrnaseq
+  - class: Person
+    name: Rand Zoabi
+    email: rand.zoabi@rz.uni-freiburg.de
+  - class: Organization
+    name: Intergalactic Workflow Commission
+    url: https://github.com/galaxyproject/iwc
+inputs:
+  reads:
+    type: collection
+    collection_type: list:paired
+    format: fastqsanger.gz
+    label: Paired-end single-cell RNA-seq reads
+    doc: FASTQ collection containing cell barcode and UMI (Read 1) paired with cDNA read (Read 2)
+  fasta:
+    type: data
+    format: fasta
+    label: Reference genome FASTA
+    doc: Reference genome sequence in FASTA format
+  gtf:
+    type: data
+    format: gtf
+    label: Reference gene annotation GTF
+    doc: Reference gene annotation file in GTF format
+  barcode_whitelist:
+    type: data
+    format: txt
+    optional: true
+    label: Cell barcode whitelist
+    doc: Whitelist of known cell barcodes for error correction (optional)
+  samplesheet:
+    type: data
+    format: csv,tabular,txt
+    optional: true
+    label: Sample metadata sheet
+    doc: Optional samplesheet (CSV/TSV) containing sample metadata to merge into AnnData
+outputs:
+  Filtered Gene Annotation GTF:
+    outputSource: filter_gtf/filtered_gtf
+    label: Filtered Gene Annotation GTF
+  Raw Gene Expression Matrix:
+    outputSource: starsolo/output_matrix
+    label: Raw Gene Expression Matrix
+  Cell Barcodes:
+    outputSource: starsolo/output_barcodes
+    label: Cell Barcodes
+  Gene Features:
+    outputSource: starsolo/output_genes
+    label: Gene Features
+  Filtered Gene Expression Matrix:
+    outputSource: starsolo/output_matrix_filtered
+    label: Filtered Gene Expression Matrix
+  Filtered Cell Barcodes:
+    outputSource: starsolo/output_barcodes_filtered
+    label: Filtered Cell Barcodes
+  Filtered Gene Features:
+    outputSource: starsolo/output_genes_filtered
+    label: Filtered Gene Features
+  STARsolo Summary:
+    outputSource: starsolo/output_stats
+    label: STARsolo Summary
+  FastQC Web Reports:
+    outputSource: fastqc/html_file
+    label: FastQC Web Reports
+  Per-Sample Filtered AnnData Matrix:
+    outputSource: mtx_to_h5ad/h5ad
+    label: Per-Sample Filtered AnnData Matrix
+  Combined Filtered AnnData Matrix:
+    outputSource: concat_h5ad/combined_h5ad
+    label: Combined Filtered AnnData Matrix
+  Combined Seurat RDS Object:
+    outputSource: anndatar_convert/seurat_rds
+    label: Combined Seurat RDS Object
+  Combined SingleCellExperiment RDS Object:
+    outputSource: anndatar_convert/sce_rds
+    label: Combined SingleCellExperiment RDS Object
+  MultiQC Quality Report:
+    outputSource: multiqc/html_report
+    label: MultiQC Quality Report
+steps:
+  - id: filter_gtf
+    label: filter_gtf
+    doc: Filter GTF file to include only annotations for chromosomes present in the reference FASTA
+    run:
+      class: GalaxyUserTool
+      id: gtf-gene-filter
+      version: "0.1.0"
+      name: Filter GTF by Genome Sequences
+      description: Filter GTF file to include only annotations on sequences present in reference FASTA
+      container: python:3.11-slim
+      configfiles:
+        - filename: params.json
+          content: |
+            {"fasta": $(JSON.stringify(inputs.fasta.path)), "gtf": $(JSON.stringify(inputs.gtf.path))}
+        - filename: filter_gtf.py
+          content: |
+            import json
+            from itertools import groupby
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            def is_header(line):
+                return line.startswith(">")
+
+            def extract_fasta_seq_names(fasta_name):
+                with open(fasta_name) as fh:
+                    faiter = (x[1] for x in groupby(fh, is_header))
+                    for header in faiter:
+                        line = next(header)
+                        if is_header(line):
+                            yield line[1:].strip().split()[0]
+
+            seq_names = set(extract_fasta_seq_names(params["fasta"]))
+            print(f"Extracted {len(seq_names)} sequence names from FASTA: {sorted(list(seq_names))[:10]}")
+
+            kept = 0
+            total = 0
+            with open("filtered_genes.gtf", "w") as out_f, open(params["gtf"]) as in_f:
+                for line in in_f:
+                    if line.startswith("#"):
+                        out_f.write(line)
+                        continue
+                    total += 1
+                    seq_id = line.split("\t")[0]
+                    if seq_id in seq_names:
+                        kept += 1
+                        out_f.write(line)
+
+            print(f"Kept {kept} / {total} GTF lines matching reference genome sequences.")
+      shell_command: python filter_gtf.py
+      inputs:
+        - name: fasta
+          type: data
+          format: fasta
+          label: Reference Genome FASTA
+        - name: gtf
+          type: data
+          format: gtf
+          label: Gene Annotation GTF
+      outputs:
+        - name: filtered_gtf
+          type: data
+          format: gtf
+          from_work_dir: filtered_genes.gtf
+          label: Filtered Gene Annotation GTF
+    in:
+      fasta: fasta
+      gtf: gtf
+
+  - id: fastqc
+    label: fastqc
+    doc: Quality control analysis of raw sequencing reads using FastQC
+    tool_id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1
+    tool_version: 0.74+galaxy1
+    tool_shed_repository:
+      changeset_revision: 2c64fded1286
+      name: fastqc
+      owner: devteam
+      tool_shed: toolshed.g2.bx.psu.edu
+    in:
+      input_file: reads
+
+  - id: starsolo
+    label: starsolo
+    doc: Single-cell RNA-seq alignment, barcode error correction, and gene quantification with STARsolo
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.11b+galaxy3
+    tool_version: 2.7.11b+galaxy3
+    tool_shed_repository:
+      changeset_revision: 9b1940be9da1
+      name: rna_starsolo
+      owner: iuc
+      tool_shed: toolshed.g2.bx.psu.edu
+    in:
+      refGenomeSource|genomeFastaFiles: fasta
+      refGenomeSource|sjdbGTFfile: filter_gtf/filtered_gtf
+      sc|input_types|input_collection: reads
+      sc|soloCBwhitelist: barcode_whitelist
+    out:
+      output_matrix: output_matrix
+      output_barcodes: output_barcodes
+      output_genes: output_genes
+      output_matrix_filtered: output_matrix_filtered
+      output_barcodes_filtered: output_barcodes_filtered
+      output_genes_filtered: output_genes_filtered
+      output_stats: output_stats
+      output_log: output_log
+      reads_per_gene: reads_per_gene
+    state:
+      algo:
+        params:
+          settingsType: default
+      chimOutType: ''
+      outWig:
+        outWigStrand: 'false'
+        outWigType: None
+      refGenomeSource:
+        geneSource: history
+        genomeFastaFiles:
+          __class__: ConnectedValue
+        genomeSAindexNbases: 12
+        sjdbGTFfeatureExon: exon
+        sjdbGTFfile:
+          __class__: ConnectedValue
+        sjdbOverhang: 100
+      sc:
+        input_types:
+          input_collection:
+            __class__: ConnectedValue
+          use: list_paired
+        params:
+          chemistry: Cv2
+        soloBarcodeReadLength: true
+        soloCBmatchWLtype: 1MM_multi
+        soloCBwhitelist:
+          __class__: ConnectedValue
+        solo_type: CB_UMI_Simple
+        umidedup:
+          soloUMIdedup: 1MM_CR
+          soloUMIfiltering: '-'
+      solo:
+        filter:
+          filter_type: cellranger2
+          n_expected: 5000
+          max_perc: 0.99
+          max_min_ratio: 10.0
+          output_raw: true
+        outSAMattributes:
+          - NH
+          - HI
+          - AS
+          - nM
+          - GX
+          - GN
+          - CB
+          - UB
+        outSAMmapqUnique: 60
+        outSAMunmapped: false
+        quantModeGene: true
+        soloFeatures: Gene$
+        soloOutFormatFeaturesGeneField3: Gene Expression
+        soloStrand: Forward
+        wasp_conditional:
+          waspOutputMode: ''
+
+  - id: mtx_to_h5ad
+    label: mtx_to_h5ad
+    doc: Convert 10x Genomics MTX outputs into per-sample AnnData H5AD format
+    run:
+      class: GalaxyUserTool
+      id: mtx-to-h5ad
+      version: "0.1.0"
+      name: Convert 10x MTX to AnnData H5AD
+      description: Convert 10x Genomics MTX matrix, barcodes, and features into an AnnData H5AD object
+      container: community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538
+      configfiles:
+        - filename: params.json
+          content: |
+            {
+              "matrix": $(JSON.stringify(inputs.matrix.path)),
+              "barcodes": $(JSON.stringify(inputs.barcodes.path)),
+              "features": $(JSON.stringify(inputs.features.path)),
+              "sample": $(JSON.stringify(inputs.sample_name)),
+              "input_type": $(JSON.stringify(inputs.input_type))
+            }
+        - filename: convert.py
+          content: |
+            import os
+            import json
+            import shutil
+            import scanpy as sc
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            sample = params.get("sample") or "sample"
+            input_type = params.get("input_type") or "filtered"
+
+            mtx_dir = "solo_mtx_input"
+            os.makedirs(mtx_dir, exist_ok=True)
+
+            def setup_input(src, base_name):
+                with open(src, "rb") as f:
+                    magic = f.read(2)
+                is_gz = (magic == b"\x1f\x8b")
+                ext = ".gz" if is_gz else ""
+                dest = os.path.join(mtx_dir, f"{base_name}{ext}")
+                if os.path.exists(dest):
+                    os.remove(dest)
+                os.symlink(os.path.abspath(src), dest)
+
+            setup_input(params["matrix"], "matrix.mtx")
+            setup_input(params["barcodes"], "barcodes.tsv")
+            setup_input(params["features"], "features.tsv")
+
+            print(f"Reading 10x MTX from {mtx_dir} for sample {sample} ({input_type})...")
+            adata = sc.read_10x_mtx(mtx_dir)
+            adata.obs["sample"] = sample
+            adata.layers["count"] = adata.X.copy()
+
+            adata.var["gene_symbol"] = adata.var.index
+            adata.var["gene_versions"] = adata.var["gene_ids"]
+            adata.var.index = adata.var["gene_versions"].str.split(".").str[0].values
+            adata.var_names_make_unique()
+
+            out_file = "matrix.h5ad"
+            adata.write_h5ad(out_file)
+            print(f"Successfully wrote AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}")
+      shell_command: python convert.py
+      inputs:
+        - name: matrix
+          type: data
+          format: mtx
+          label: Count Matrix (MTX)
+        - name: barcodes
+          type: data
+          format: tabular,txt
+          label: Barcodes (TSV)
+        - name: features
+          type: data
+          format: tabular,txt
+          label: Features / Genes (TSV)
+        - name: sample_name
+          type: text
+          value: sample
+          label: Sample Identifier
+        - name: input_type
+          type: text
+          value: filtered
+          label: Matrix Type (raw or filtered)
+      outputs:
+        - name: h5ad
+          type: data
+          format: h5ad
+          from_work_dir: matrix.h5ad
+          label: AnnData Matrix (H5AD)
+    in:
+      matrix: starsolo/output_matrix_filtered
+      barcodes: starsolo/output_barcodes_filtered
+      features: starsolo/output_genes_filtered
+
+  - id: concat_h5ad
+    label: concat_h5ad
+    doc: Concatenate multiple AnnData H5AD files into a merged dataset and optionally join metadata
+    run:
+      class: GalaxyUserTool
+      id: concat-h5ad
+      version: "0.1.0"
+      name: Concatenate AnnData H5AD Files
+      description: Combine multiple per-sample AnnData H5AD files into a merged dataset
+      container: community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538
+      configfiles:
+        - filename: params.json
+          content: |
+            {
+              "h5ads": $(JSON.stringify(inputs.h5ad_files.map(function(d) {
+                return {path: d.path, name: d.name || "sample"};
+              }))),
+              "samplesheet": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)),
+              "input_type": $(JSON.stringify(inputs.input_type || "filtered"))
+            }
+        - filename: concat.py
+          content: |
+            import os
+            import json
+            from pathlib import Path
+            import pandas as pd
+            import scanpy as sc
+            import anndata as ad
+
+            with open("params.json") as fh:
+                params = json.load(fh)
+
+            input_type = params.get("input_type") or "filtered"
+            samplesheet_path = params.get("samplesheet")
+
+            dict_of_h5ad = {}
+            for item in params["h5ads"]:
+                p = item["path"]
+                adata_sub = sc.read_h5ad(p)
+                if "sample" in adata_sub.obs.columns and len(adata_sub.obs["sample"]) > 0:
+                    sample_name = str(adata_sub.obs["sample"].iloc[0])
+                else:
+                    sample_name = os.path.splitext(os.path.basename(item.get("name") or "sample"))[0]
+                key = f"{sample_name}_{input_type}"
+                dict_of_h5ad[key] = adata_sub
+
+            print(f"Concatenating {len(dict_of_h5ad)} AnnData datasets: {list(dict_of_h5ad.keys())}...")
+            adata = ad.concat(dict_of_h5ad, label="sample", merge="unique", index_unique="_")
+
+            if samplesheet_path and os.path.exists(samplesheet_path):
+                try:
+                    sep = "," if samplesheet_path.endswith(".csv") else "\t"
+                    df_samplesheet = pd.read_csv(samplesheet_path, sep=sep)
+                    if "sample" in df_samplesheet.columns:
+                        df_samplesheet = df_samplesheet.groupby(["sample"]).agg(lambda col: ",".join(set(col.astype(str))))
+                        adata.obs = adata.obs.join(df_samplesheet, on="sample", how="left").astype(str)
+                        print("Joined samplesheet metadata into AnnData obs.")
+                except Exception as e:
+                    print(f"Warning: could not process samplesheet: {e}")
+
+            out_file = "combined_matrix.h5ad"
+            adata.write_h5ad(out_file)
+            print(f"Successfully wrote combined AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}")
+      shell_command: python concat.py
+      inputs:
+        - name: h5ad_files
+          type: data
+          format: h5ad
+          multiple: true
+          label: AnnData H5AD Files
+        - name: samplesheet
+          type: data
+          format: csv,tabular,txt
+          optional: true
+          label: Sample Sheet (CSV/TSV, optional)
+        - name: input_type
+          type: text
+          value: filtered
+          label: Matrix Type (raw or filtered)
+      outputs:
+        - name: combined_h5ad
+          type: data
+          format: h5ad
+          from_work_dir: combined_matrix.h5ad
+          label: Combined AnnData Matrix (H5AD)
+    in:
+      h5ad_files: mtx_to_h5ad/h5ad
+      samplesheet: samplesheet
+
+  - id: anndatar_convert
+    label: anndatar_convert
+    doc: Convert the combined AnnData H5AD object into Seurat and SingleCellExperiment RDS formats
+    run:
+      class: GalaxyUserTool
+      id: anndatar-convert
+      version: "0.1.0"
+      name: Convert AnnData H5AD to Seurat and SingleCellExperiment
+      description: Convert an AnnData H5AD object into Seurat and SingleCellExperiment RDS formats
+      container: community.wave.seqera.io/library/bioconductor-anndatar_bioconductor-rhdf5_bioconductor-singlecellexperiment_r-seurat:a0f51df063bb9b2a
+      configfiles:
+        - filename: convert.R
+          content: |
+            library(anndataR)
+            library(SeuratObject)
+            library(SingleCellExperiment)
+
+            input_path <- "$(inputs.h5ad.path)"
+            cat("Reading AnnData H5AD from:", input_path, "\n")
+            adata <- read_h5ad(input_path)
+
+            cat("Converting to Seurat object...\n")
+            obj_seurat <- adata$as_Seurat()
+            saveRDS(obj_seurat, file = "matrix.seurat.rds")
+            cat("Saved matrix.seurat.rds\n")
+
+            cat("Converting to SingleCellExperiment object...\n")
+            obj_sce <- adata$as_SingleCellExperiment()
+            saveRDS(obj_sce, file = "matrix.sce.rds")
+            cat("Saved matrix.sce.rds\n")
+      shell_command: Rscript convert.R
+      inputs:
+        - name: h5ad
+          type: data
+          format: h5ad
+          label: AnnData Input Matrix (H5AD)
+      outputs:
+        - name: seurat_rds
+          type: data
+          format: rds
+          from_work_dir: matrix.seurat.rds
+          label: Seurat RDS Object
+        - name: sce_rds
+          type: data
+          format: rds
+          from_work_dir: matrix.sce.rds
+          label: SingleCellExperiment RDS Object
+    in:
+      h5ad: concat_h5ad/combined_h5ad
+
+  - id: multiqc
+    label: multiqc
+    doc: Aggregate MultiQC report summarizing FastQC read quality and STARsolo alignment statistics
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4
+    tool_version: 1.35+galaxy4
+    tool_shed_repository:
+      changeset_revision: 97255f6fdf7e
+      name: multiqc
+      owner: iuc
+      tool_shed: toolshed.g2.bx.psu.edu
+    in:
+      results_0|software_cond|output_0|type|input: starsolo/output_log
+      results_0|software_cond|output_1|type|input: starsolo/reads_per_gene
+      results_1|software_cond|output_0|type|input: fastqc/text_file
+    out:
+      html_report: html_report
+      stats: stats
+    state:
+      comment: ''
+      export_plots: false
+      flat: false
+      results_0:
+        software_cond:
+          output_0:
+            type:
+              input:
+                __class__: ConnectedValue
+              type: log
+          output_1:
+            type:
+              input:
+                __class__: ConnectedValue
+              type: reads_per_gene
+          software: rgrnastar
+      results_1:
+        software_cond:
+          output_0:
+            type:
+              input:
+                __class__: ConnectedValue
+              type: fastqc_data
+          software: fastqc
+      title: 'nf-core/scrnaseq Quality Report'

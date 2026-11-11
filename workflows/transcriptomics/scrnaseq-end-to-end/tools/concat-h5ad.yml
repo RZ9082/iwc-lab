@@ -1,0 +1,89 @@
+class: GalaxyUserTool
+id: concat-h5ad
+version: "0.1.0"
+name: Concatenate AnnData H5AD Files
+description: Combine multiple per-sample AnnData H5AD files into a merged dataset
+container: community.wave.seqera.io/library/scanpy:1.10.2--e83da2205b92a538
+configfiles:
+  - filename: params.json
+    content: |
+      {
+        "h5ads": $(JSON.stringify(inputs.h5ad_files.map(function(d) {
+          return {path: d.path, name: d.name || "sample"};
+        }))),
+        "samplesheet": $(JSON.stringify(inputs.samplesheet ? inputs.samplesheet.path : null)),
+        "input_type": $(JSON.stringify(inputs.input_type || "filtered"))
+      }
+  - filename: concat.py
+    content: |
+      import os
+      import json
+      from pathlib import Path
+      import pandas as pd
+      import scanpy as sc
+      import anndata as ad
+
+      with open("params.json") as fh:
+          params = json.load(fh)
+
+      input_type = params.get("input_type") or "filtered"
+      samplesheet_path = params.get("samplesheet")
+
+      dict_of_h5ad = {}
+      for item in params["h5ads"]:
+          p = item["path"]
+          adata_sub = sc.read_h5ad(p)
+          # Infer sample name from adata.obs['sample'] or fallback to item name
+          if "sample" in adata_sub.obs.columns and len(adata_sub.obs["sample"]) > 0:
+              sample_name = str(adata_sub.obs["sample"].iloc[0])
+          else:
+              sample_name = os.path.splitext(os.path.basename(item.get("name") or "sample"))[0]
+          key = f"{sample_name}_{input_type}"
+          dict_of_h5ad[key] = adata_sub
+
+      print(f"Concatenating {len(dict_of_h5ad)} AnnData datasets: {list(dict_of_h5ad.keys())}...")
+      adata = ad.concat(dict_of_h5ad, label="sample", merge="unique", index_unique="_")
+
+      if samplesheet_path and os.path.exists(samplesheet_path):
+          try:
+              sep = "," if samplesheet_path.endswith(".csv") else "\t"
+              df_samplesheet = pd.read_csv(samplesheet_path, sep=sep)
+              if "sample" in df_samplesheet.columns:
+                  df_samplesheet = df_samplesheet.groupby(["sample"]).agg(lambda col: ",".join(set(col.astype(str))))
+                  adata.obs = adata.obs.join(df_samplesheet, on="sample", how="left").astype(str)
+                  print("Joined samplesheet metadata into AnnData obs.")
+          except Exception as e:
+              print(f"Warning: could not process samplesheet: {e}")
+
+      out_file = "combined_matrix.h5ad"
+      adata.write_h5ad(out_file)
+      print(f"Successfully wrote combined AnnData ({adata.n_obs} cells x {adata.n_vars} genes) to {out_file}")
+shell_command: python concat.py
+inputs:
+  - name: h5ad_files
+    type: data
+    format: h5ad
+    multiple: true
+    label: AnnData H5AD Files
+  - name: samplesheet
+    type: data
+    format: csv,tabular,txt
+    optional: true
+    label: Sample Sheet (CSV/TSV, optional)
+  - name: input_type
+    type: text
+    value: filtered
+    label: Matrix Type (raw or filtered)
+outputs:
+  - name: combined_h5ad
+    type: data
+    format: h5ad
+    from_work_dir: combined_matrix.h5ad
+    label: Combined AnnData Matrix (H5AD)
+help:
+  format: markdown
+  content: |
+    Concatenates multiple AnnData H5AD files into a single unified AnnData file,
+    preserving unique cell barcodes and merging gene features.
+
+    Matches the `CONCAT_H5AD` module from `nf-core/scrnaseq`.
