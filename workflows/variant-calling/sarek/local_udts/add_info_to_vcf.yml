@@ -3,7 +3,7 @@ id: add_info_to_vcf
 version: "1.0.0"
 name: Add Source Info to VCF
 description: Adds file source metadata to INFO column of VCF variants (nf-core/sarek local module)
-container: biocontainers/gawk:5.3.0
+container: quay.io/biocontainers/gawk:5.3.0
 shell_command: |
   set -euo pipefail
   zcat "$(inputs.vcf_gz.path)" > input.vcf
