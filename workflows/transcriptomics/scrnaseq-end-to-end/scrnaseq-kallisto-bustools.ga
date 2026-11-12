@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "7c150b22-b554-4419-9286-c3b31e1514f0",
+  "uuid": "113f4a47-9c97-42e6-9097-8162039985e0",
   "creator": [
     {
       "name": "nf-core",
@@ -624,7 +624,7 @@
       "type": "tool",
       "label": "concat_h5ad",
       "annotation": "Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"__page__\": 0, \"input_type\": \"filtered\"}",
       "position": {
         "left": 1950,
         "top": 50

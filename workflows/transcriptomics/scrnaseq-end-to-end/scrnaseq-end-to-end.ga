@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "1f43a70b-cdd7-4dfb-b540-ee6a213e96f0",
+  "uuid": "16843403-a4c0-41a2-b79d-fbf4b68df4a3",
   "creator": [
     {
       "name": "nf-core",
@@ -453,7 +453,7 @@
       "type": "tool",
       "label": "concat_h5ad",
       "annotation": "Concatenate multiple AnnData H5AD files into a merged dataset and optionally join metadata",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"__page__\": 0, \"input_type\": \"filtered\"}",
       "position": {
         "left": 1570,
         "top": 50

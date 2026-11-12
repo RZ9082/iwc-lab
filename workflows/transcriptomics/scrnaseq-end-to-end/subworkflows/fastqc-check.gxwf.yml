@@ -45,3 +45,10 @@ steps:
       tool_shed: toolshed.g2.bx.psu.edu
     in:
       input_file: reads
+    state:
+      adapters: null
+      contaminants: null
+      kmers: "7"
+      limits: null
+      min_length: ""
+      nogroup: false

@@ -19,7 +19,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "55ef4200-e4dc-4d81-83a8-eaca48102afa",
+  "uuid": "32bf5fed-fb67-4426-9249-e7b3d9461c01",
   "creator": [
     {
       "name": "nf-core",
@@ -197,7 +197,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "4d613582-276d-4a7f-ac4c-0ea2fa12ac6c",
+        "uuid": "8ba2e80b-860b-4005-9acf-b8c3a372aa19",
         "creator": [
           {
             "name": "nf-core",
@@ -391,7 +391,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "08f5b327-8656-40da-8307-f68c29053b30",
+        "uuid": "ffabfe33-7d12-4815-bafc-c85a2615c9b4",
         "creator": [
           {
             "name": "nf-core",
@@ -438,7 +438,7 @@
             "type": "tool",
             "label": "fastqc",
             "annotation": "Per-sample quality control metrics using FastQC",
-            "tool_state": "{\"__page__\": 0}",
+            "tool_state": "{\"__page__\": 0, \"adapters\": null, \"contaminants\": null, \"kmers\": \"7\", \"limits\": null, \"min_length\": \"\", \"nogroup\": false}",
             "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
             "tool_version": "0.74+galaxy1",
             "tool_shed_repository": {
@@ -692,7 +692,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "d740f092-e77d-494d-94ec-b1d679590dc5",
+        "uuid": "3f1743d0-9bf5-4cf6-9581-e76d7625051b",
         "creator": [
           {
             "name": "nf-core",
@@ -1047,7 +1047,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "a41d8cc4-c96a-4f2a-b3c6-10af9d40f718",
+        "uuid": "4773c694-5bdb-4791-817c-585ce2fc009f",
         "creator": [
           {
             "name": "nf-core",
@@ -1545,7 +1545,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "f02d6c83-e07b-4fa2-8542-97a0d76d5211",
+        "uuid": "63dd1863-0c68-4495-ae2b-d6494da42af1",
         "creator": [
           {
             "name": "nf-core",
@@ -2043,7 +2043,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "efb3e9d7-4a48-45a9-b05d-c935fd1e22fc",
+        "uuid": "75cb7078-6a3d-4ba3-aa31-8eb20175adf4",
         "creator": [
           {
             "name": "nf-core",
@@ -2112,7 +2112,7 @@
             "type": "tool",
             "label": "concat_h5ad",
             "annotation": "Concatenate per-sample H5AD objects into a single AnnData object and merge samplesheet metadata",
-            "tool_state": "{\"__page__\": 0}",
+            "tool_state": "{\"__page__\": 0, \"input_type\": \"filtered\"}",
             "position": {
               "top": 20,
               "left": 20

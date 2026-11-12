@@ -122,6 +122,8 @@ steps:
   in:
     h5ad_files: h5ad_files
     samplesheet: samplesheet
+  state:
+    input_type: filtered
 - id: anndatar_convert
   label: anndatar_convert
   doc: Convert AnnData H5AD matrix into Seurat and SingleCellExperiment RDS formats
