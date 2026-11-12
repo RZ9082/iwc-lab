@@ -219,7 +219,8 @@ steps:
     configfiles:
     - filename: params.json
       content: "{\n  \"reads\": $(JSON.stringify(inputs.reads)),\n  \"index\": $(JSON.stringify(inputs.index.path)),\n\
-        \  \"t2g\": $(JSON.stringify(inputs.t2g.path)),\n  \"technology\": $(JSON.stringify(inputs.technology)),\n\
+        \  \"t2g\": $(JSON.stringify(inputs.t2g.path)),\n  \"whitelist\": $(JSON.stringify(inputs.whitelist\
+        \ ? inputs.whitelist.path : null)),\n  \"technology\": $(JSON.stringify(inputs.technology)),\n\
         \  \"workflow_mode\": $(JSON.stringify(inputs.workflow_mode))\n}\n"
     - filename: run_kb.py
       content: "import os\nimport sys\nimport json\nimport glob\nimport shutil\nimport\
@@ -239,29 +240,30 @@ steps:
         \ or not rev:\n    print(f\"Error: Unable to identify forward and reverse\
         \ read paths from input: {reads}\", file=sys.stderr)\n    sys.exit(1)\n\n\
         idx = params[\"index\"]\nt2g = params[\"t2g\"]\ntech = params.get(\"technology\"\
-        ) or \"10XV2\"\nwf = params.get(\"workflow_mode\") or \"standard\"\nslots\
-        \ = os.environ.get(\"GALAXY_SLOTS\", \"4\")\n\ncmd = [\"kb\", \"count\", \"\
-        -t\", str(slots), \"-i\", idx, \"-g\", t2g, \"-x\", tech, \"--workflow\",\
-        \ wf, \"-o\", \"output_counts\", fwd, rev]\nprint(\"Running kb count:\", \"\
-        \ \".join(cmd))\nres = subprocess.run(cmd)\nif res.returncode != 0:\n    sys.exit(res.returncode)\n\
-        \nos.makedirs(\"out_solo/raw\", exist_ok=True)\nos.makedirs(\"out_solo/filtered\"\
-        , exist_ok=True)\n\nfor pattern, dst in [\n    (\"output_counts/counts_unfiltered/*.mtx\"\
-        , \"out_solo/raw/matrix.mtx\"),\n    (\"output_counts/counts_unfiltered/*.barcodes.txt\"\
-        , \"out_solo/raw/barcodes.tsv\"),\n    (\"output_counts/counts_unfiltered/*.genes.txt\"\
-        , \"out_solo/raw/features.tsv\"),\n    (\"output_counts/counts_filtered/*.mtx\"\
-        , \"out_solo/filtered/matrix.mtx\"),\n    (\"output_counts/counts_filtered/*.barcodes.txt\"\
-        , \"out_solo/filtered/barcodes.tsv\"),\n    (\"output_counts/counts_filtered/*.genes.txt\"\
-        , \"out_solo/filtered/features.tsv\")\n]:\n    matches = glob.glob(pattern)\n\
-        \    if matches:\n        shutil.copyfile(matches[0], dst)\n\n# Ensure filtered\
-        \ outputs exist even if kb count ran in unfiltered-only mode or minimal test\
-        \ data\nif not os.path.exists(\"out_solo/filtered/matrix.mtx\") and os.path.exists(\"\
-        out_solo/raw/matrix.mtx\"):\n    shutil.copyfile(\"out_solo/raw/matrix.mtx\"\
-        , \"out_solo/filtered/matrix.mtx\")\nif not os.path.exists(\"out_solo/filtered/barcodes.tsv\"\
-        ) and os.path.exists(\"out_solo/raw/barcodes.tsv\"):\n    shutil.copyfile(\"\
-        out_solo/raw/barcodes.tsv\", \"out_solo/filtered/barcodes.tsv\")\nif not os.path.exists(\"\
-        out_solo/filtered/features.tsv\") and os.path.exists(\"out_solo/raw/features.tsv\"\
-        ):\n    shutil.copyfile(\"out_solo/raw/features.tsv\", \"out_solo/filtered/features.tsv\"\
-        )\n"
+        ) or \"10XV2\"\nwf = params.get(\"workflow_mode\") or \"standard\"\nwl = params.get(\"\
+        whitelist\")\nslots = os.environ.get(\"GALAXY_SLOTS\", \"4\")\n\ncmd = [\"\
+        kb\", \"count\", \"-t\", str(slots), \"-i\", idx, \"-g\", t2g, \"-x\", tech,\
+        \ \"--workflow\", wf]\nif wl and os.path.exists(wl):\n    cmd.extend([\"-w\"\
+        , wl])\ncmd.extend([\"-o\", \"output_counts\", fwd, rev])\nprint(\"Running\
+        \ kb count:\", \" \".join(cmd))\nres = subprocess.run(cmd)\nif res.returncode\
+        \ != 0:\n    sys.exit(res.returncode)\n\nos.makedirs(\"out_solo/raw\", exist_ok=True)\n\
+        os.makedirs(\"out_solo/filtered\", exist_ok=True)\n\nfor pattern, dst in [\n\
+        \    (\"output_counts/counts_unfiltered/*.mtx\", \"out_solo/raw/matrix.mtx\"\
+        ),\n    (\"output_counts/counts_unfiltered/*.barcodes.txt\", \"out_solo/raw/barcodes.tsv\"\
+        ),\n    (\"output_counts/counts_unfiltered/*.genes.txt\", \"out_solo/raw/features.tsv\"\
+        ),\n    (\"output_counts/counts_filtered/*.mtx\", \"out_solo/filtered/matrix.mtx\"\
+        ),\n    (\"output_counts/counts_filtered/*.barcodes.txt\", \"out_solo/filtered/barcodes.tsv\"\
+        ),\n    (\"output_counts/counts_filtered/*.genes.txt\", \"out_solo/filtered/features.tsv\"\
+        )\n]:\n    matches = glob.glob(pattern)\n    if matches:\n        shutil.copyfile(matches[0],\
+        \ dst)\n\n# Ensure filtered outputs exist even if kb count ran in unfiltered-only\
+        \ mode or minimal test data\nif not os.path.exists(\"out_solo/filtered/matrix.mtx\"\
+        ) and os.path.exists(\"out_solo/raw/matrix.mtx\"):\n    shutil.copyfile(\"\
+        out_solo/raw/matrix.mtx\", \"out_solo/filtered/matrix.mtx\")\nif not os.path.exists(\"\
+        out_solo/filtered/barcodes.tsv\") and os.path.exists(\"out_solo/raw/barcodes.tsv\"\
+        ):\n    shutil.copyfile(\"out_solo/raw/barcodes.tsv\", \"out_solo/filtered/barcodes.tsv\"\
+        )\nif not os.path.exists(\"out_solo/filtered/features.tsv\") and os.path.exists(\"\
+        out_solo/raw/features.tsv\"):\n    shutil.copyfile(\"out_solo/raw/features.tsv\"\
+        , \"out_solo/filtered/features.tsv\")\n"
     shell_command: 'set -euo pipefail
 
       python3 run_kb.py
@@ -280,6 +282,11 @@ steps:
       type: data
       format: tabular
       label: Transcript-to-Gene Mapping (t2g.txt)
+    - name: whitelist
+      type: data
+      format: txt,tabular
+      optional: true
+      label: Cell Barcode Whitelist
     - name: technology
       type: text
       value: 10XV2
