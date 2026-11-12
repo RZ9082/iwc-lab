@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "11ec9e72-9eb6-41ac-8430-a8045293392a",
+  "uuid": "0e8d6877-3afb-4a73-8b6a-ff99712373cf",
   "creator": [
     {
       "name": "nf-core",
@@ -54,55 +54,11 @@
     },
     "1": {
       "id": 1,
-      "name": "fpr",
-      "type": "parameter_input",
-      "label": "fpr",
-      "annotation": "Nominal target false positive rate for CellBender",
-      "tool_state": "{\"name\": \"fpr\", \"parameter_type\": \"float\", \"default\": 0.01}",
-      "position": {
-        "left": 50,
-        "top": 290
-      },
-      "input_connections": {},
-      "inputs": [
-        {
-          "name": "fpr",
-          "description": ""
-        }
-      ],
-      "outputs": [],
-      "workflow_outputs": [],
-      "post_job_actions": {}
-    },
-    "2": {
-      "id": 2,
-      "name": "epochs",
-      "type": "parameter_input",
-      "label": "epochs",
-      "annotation": "Training epochs for CellBender deep generative model",
-      "tool_state": "{\"name\": \"epochs\", \"parameter_type\": \"integer\", \"default\": 150}",
-      "position": {
-        "left": 50,
-        "top": 530
-      },
-      "input_connections": {},
-      "inputs": [
-        {
-          "name": "epochs",
-          "description": ""
-        }
-      ],
-      "outputs": [],
-      "workflow_outputs": [],
-      "post_job_actions": {}
-    },
-    "3": {
-      "id": 3,
       "name": "CellBender Remove Background",
       "type": "tool",
       "label": "cellbender",
       "annotation": "Train deep generative model to estimate ambient RNA profile and identify cell-containing droplets",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"__page__\": 0, \"epochs\": 150, \"fpr\": 0.01}",
       "position": {
         "left": 430,
         "top": 50
@@ -111,18 +67,6 @@
         "h5ad": [
           {
             "id": 0,
-            "output_name": "output"
-          }
-        ],
-        "fpr": [
-          {
-            "id": 1,
-            "output_name": "output"
-          }
-        ],
-        "epochs": [
-          {
-            "id": 2,
             "output_name": "output"
           }
         ]
@@ -216,8 +160,8 @@
         }
       }
     },
-    "4": {
-      "id": 4,
+    "2": {
+      "id": 2,
       "name": "Filter AnnData by Barcodes",
       "type": "tool",
       "label": "filter_barcodes",
@@ -236,7 +180,7 @@
         ],
         "barcodes": [
           {
-            "id": 3,
+            "id": 1,
             "output_name": "barcodes"
           }
         ]

@@ -20,8 +20,6 @@
       class: File
       location: https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/gencode.vM19.annotation.chr19.gtf
       filetype: gtf
-    technology: "10XV2"
-    workflow_mode: "standard"
   outputs:
     Raw Gene Expression Matrix (MTX):
       asserts:

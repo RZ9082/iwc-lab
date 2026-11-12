@@ -24,16 +24,6 @@ inputs:
     format: h5ad
     label: Raw Unfiltered AnnData Matrix
     doc: Raw single-cell gene expression matrix in H5AD format
-  fpr:
-    type: float
-    default: 0.01
-    label: Expected False Positive Rate
-    doc: Nominal target false positive rate for CellBender
-  epochs:
-    type: integer
-    default: 150
-    label: Number of Training Epochs
-    doc: Training epochs for CellBender deep generative model
 outputs:
   CellBender Filtered AnnData Matrix:
     outputSource: filter_barcodes/filtered_h5ad
@@ -137,8 +127,9 @@ steps:
         '
   in:
     h5ad: raw_h5ad
-    fpr: fpr
-    epochs: epochs
+  state:
+    epochs: 150
+    fpr: 0.01
 - id: filter_barcodes
   label: filter_barcodes
   doc: Subset AnnData matrix using CellBender verified barcodes

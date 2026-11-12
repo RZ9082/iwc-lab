@@ -24,8 +24,6 @@
       class: File
       location: https://github.com/nf-core/test-datasets/raw/scrnaseq/testdata/whitelist/10x_V2_barcode_whitelist.txt.gz
       filetype: txt
-    chemistry: "10xv2"
-    resolution: "cr-like"
   outputs:
     Simpleaf AnnData Matrix (H5AD):
       asserts:

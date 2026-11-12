@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "ba60f875-8497-4aa4-a597-4324d52d6e94",
+  "uuid": "63ac60c2-7e62-4bf7-9fcd-d63e1efb91d3",
   "creator": [
     {
       "name": "nf-core",
@@ -120,50 +120,6 @@
     },
     "4": {
       "id": 4,
-      "name": "chemistry",
-      "type": "parameter_input",
-      "label": "chemistry",
-      "annotation": "10x Chromium chemistry (10xv2, 10xv3, dropseq)",
-      "tool_state": "{\"name\": \"chemistry\", \"parameter_type\": \"text\", \"default\": \"10xv2\"}",
-      "position": {
-        "left": 50,
-        "top": 1010
-      },
-      "input_connections": {},
-      "inputs": [
-        {
-          "name": "chemistry",
-          "description": ""
-        }
-      ],
-      "outputs": [],
-      "workflow_outputs": [],
-      "post_job_actions": {}
-    },
-    "5": {
-      "id": 5,
-      "name": "resolution",
-      "type": "parameter_input",
-      "label": "resolution",
-      "annotation": "UMI deduplication algorithm (cr-like, parsimony, trivial)",
-      "tool_state": "{\"name\": \"resolution\", \"parameter_type\": \"text\", \"default\": \"cr-like\"}",
-      "position": {
-        "left": 50,
-        "top": 1250
-      },
-      "input_connections": {},
-      "inputs": [
-        {
-          "name": "resolution",
-          "description": ""
-        }
-      ],
-      "outputs": [],
-      "workflow_outputs": [],
-      "post_job_actions": {}
-    },
-    "6": {
-      "id": 6,
       "name": "Simpleaf Index",
       "type": "tool",
       "label": "simpleaf_index",
@@ -244,13 +200,13 @@
         }
       }
     },
-    "7": {
-      "id": 7,
+    "5": {
+      "id": 5,
       "name": "Simpleaf Quant",
       "type": "tool",
       "label": "simpleaf_quant",
       "annotation": "Quantify single-cell FASTQ reads with simpleaf quant",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"__page__\": 0, \"chemistry\": \"10xv2\", \"resolution\": \"cr-like\"}",
       "position": {
         "left": 810,
         "top": 50
@@ -264,31 +220,19 @@
         ],
         "index_archive": [
           {
-            "id": 6,
+            "id": 4,
             "output_name": "index_archive"
           }
         ],
         "t2g": [
           {
-            "id": 6,
+            "id": 4,
             "output_name": "t2g"
           }
         ],
         "whitelist": [
           {
             "id": 3,
-            "output_name": "output"
-          }
-        ],
-        "chemistry": [
-          {
-            "id": 4,
-            "output_name": "output"
-          }
-        ],
-        "resolution": [
-          {
-            "id": 5,
             "output_name": "output"
           }
         ]
@@ -373,8 +317,8 @@
         }
       }
     },
-    "8": {
-      "id": 8,
+    "6": {
+      "id": 6,
       "name": "QCatch Quality Assessment",
       "type": "tool",
       "label": "qcatch",
@@ -387,7 +331,7 @@
       "input_connections": {
         "h5ad": [
           {
-            "id": 7,
+            "id": 5,
             "output_name": "h5ad"
           }
         ]

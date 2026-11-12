@@ -19,7 +19,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "32bf5fed-fb67-4426-9249-e7b3d9461c01",
+  "uuid": "ebb19f66-7664-4382-bc0f-94c64f63994b",
   "creator": [
     {
       "name": "nf-core",
@@ -197,7 +197,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "8ba2e80b-860b-4005-9acf-b8c3a372aa19",
+        "uuid": "384c816c-b0ea-43e7-8e45-f23cc57cf60d",
         "creator": [
           {
             "name": "nf-core",
@@ -391,7 +391,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "ffabfe33-7d12-4815-bafc-c85a2615c9b4",
+        "uuid": "2f40f613-248d-4d64-8b11-0e6f5bd3c8f5",
         "creator": [
           {
             "name": "nf-core",
@@ -692,7 +692,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "3f1743d0-9bf5-4cf6-9581-e76d7625051b",
+        "uuid": "c61c0d5d-2fd9-4063-bfce-060e740e8393",
         "creator": [
           {
             "name": "nf-core",
@@ -735,75 +735,19 @@
           },
           "1": {
             "id": 1,
-            "name": "fpr",
-            "type": "parameter_input",
-            "label": "fpr",
-            "annotation": "Nominal target false positive rate for CellBender",
-            "tool_state": "{\"name\": \"fpr\", \"parameter_type\": \"float\", \"default\": 0.01}",
-            "position": {
-              "top": 10,
-              "left": 10
-            },
-            "input_connections": {},
-            "inputs": [
-              {
-                "name": "fpr",
-                "description": ""
-              }
-            ],
-            "outputs": [],
-            "workflow_outputs": [],
-            "post_job_actions": {}
-          },
-          "2": {
-            "id": 2,
-            "name": "epochs",
-            "type": "parameter_input",
-            "label": "epochs",
-            "annotation": "Training epochs for CellBender deep generative model",
-            "tool_state": "{\"name\": \"epochs\", \"parameter_type\": \"integer\", \"default\": 150}",
-            "position": {
-              "top": 20,
-              "left": 20
-            },
-            "input_connections": {},
-            "inputs": [
-              {
-                "name": "epochs",
-                "description": ""
-              }
-            ],
-            "outputs": [],
-            "workflow_outputs": [],
-            "post_job_actions": {}
-          },
-          "3": {
-            "id": 3,
             "name": "CellBender Remove Background",
             "type": "tool",
             "label": "cellbender",
             "annotation": "Train deep generative model to estimate ambient RNA profile and identify cell-containing droplets",
-            "tool_state": "{\"__page__\": 0}",
+            "tool_state": "{\"__page__\": 0, \"epochs\": 150, \"fpr\": 0.01}",
             "position": {
-              "top": 30,
-              "left": 30
+              "top": 10,
+              "left": 10
             },
             "input_connections": {
               "h5ad": [
                 {
                   "id": 0,
-                  "output_name": "output"
-                }
-              ],
-              "fpr": [
-                {
-                  "id": 1,
-                  "output_name": "output"
-                }
-              ],
-              "epochs": [
-                {
-                  "id": 2,
                   "output_name": "output"
                 }
               ]
@@ -897,16 +841,16 @@
               }
             }
           },
-          "4": {
-            "id": 4,
+          "2": {
+            "id": 2,
             "name": "Filter AnnData by Barcodes",
             "type": "tool",
             "label": "filter_barcodes",
             "annotation": "Subset AnnData matrix using CellBender verified barcodes",
             "tool_state": "{\"__page__\": 0}",
             "position": {
-              "top": 40,
-              "left": 40
+              "top": 20,
+              "left": 20
             },
             "input_connections": {
               "h5ad": [
@@ -917,7 +861,7 @@
               ],
               "barcodes": [
                 {
-                  "id": 3,
+                  "id": 1,
                   "output_name": "barcodes"
                 }
               ]
@@ -1047,7 +991,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "4773c694-5bdb-4791-817c-585ce2fc009f",
+        "uuid": "97917ed4-7f1f-465a-83b2-bcecb7ba605d",
         "creator": [
           {
             "name": "nf-core",
@@ -1156,58 +1100,14 @@
           },
           "4": {
             "id": 4,
-            "name": "technology",
-            "type": "parameter_input",
-            "label": "technology",
-            "annotation": "Barcode chemistry (e.g. 10XV2, 10XV3, DROPSEQ)",
-            "tool_state": "{\"name\": \"technology\", \"parameter_type\": \"text\", \"default\": \"10XV2\"}",
-            "position": {
-              "top": 40,
-              "left": 40
-            },
-            "input_connections": {},
-            "inputs": [
-              {
-                "name": "technology",
-                "description": ""
-              }
-            ],
-            "outputs": [],
-            "workflow_outputs": [],
-            "post_job_actions": {}
-          },
-          "5": {
-            "id": 5,
-            "name": "workflow_mode",
-            "type": "parameter_input",
-            "label": "workflow_mode",
-            "annotation": "Kallisto quantification mode (standard, lamanno, nucleus)",
-            "tool_state": "{\"name\": \"workflow_mode\", \"parameter_type\": \"text\", \"default\": \"standard\"}",
-            "position": {
-              "top": 50,
-              "left": 50
-            },
-            "input_connections": {},
-            "inputs": [
-              {
-                "name": "workflow_mode",
-                "description": ""
-              }
-            ],
-            "outputs": [],
-            "workflow_outputs": [],
-            "post_job_actions": {}
-          },
-          "6": {
-            "id": 6,
             "name": "Kallisto-Bustools Reference",
             "type": "tool",
             "label": "kb_ref",
             "annotation": "Build kallisto index and transcript-to-gene mapping from genome FASTA and GTF",
-            "tool_state": "{\"__page__\": 0}",
+            "tool_state": "{\"__page__\": 0, \"workflow_mode\": \"standard\"}",
             "position": {
-              "top": 60,
-              "left": 60
+              "top": 40,
+              "left": 40
             },
             "input_connections": {
               "fasta": [
@@ -1219,12 +1119,6 @@
               "gtf": [
                 {
                   "id": 2,
-                  "output_name": "output"
-                }
-              ],
-              "workflow_mode": [
-                {
-                  "id": 5,
                   "output_name": "output"
                 }
               ]
@@ -1299,16 +1193,16 @@
               }
             }
           },
-          "7": {
-            "id": 7,
+          "5": {
+            "id": 5,
             "name": "Kallisto-Bustools Count",
             "type": "tool",
             "label": "kb_count",
             "annotation": "Quantify single-cell FASTQ reads against kallisto index",
-            "tool_state": "{\"__page__\": 0}",
+            "tool_state": "{\"__page__\": 0, \"technology\": \"10XV2\", \"workflow_mode\": \"standard\"}",
             "position": {
-              "top": 70,
-              "left": 70
+              "top": 50,
+              "left": 50
             },
             "input_connections": {
               "reads": [
@@ -1319,31 +1213,19 @@
               ],
               "index": [
                 {
-                  "id": 6,
+                  "id": 4,
                   "output_name": "index"
                 }
               ],
               "t2g": [
                 {
-                  "id": 6,
+                  "id": 4,
                   "output_name": "t2g"
                 }
               ],
               "whitelist": [
                 {
                   "id": 3,
-                  "output_name": "output"
-                }
-              ],
-              "technology": [
-                {
-                  "id": 4,
-                  "output_name": "output"
-                }
-              ],
-              "workflow_mode": [
-                {
-                  "id": 5,
                   "output_name": "output"
                 }
               ]
@@ -1545,7 +1427,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "63dd1863-0c68-4495-ae2b-d6494da42af1",
+        "uuid": "f6b7f654-2b04-422a-977a-d42ef973784e",
         "creator": [
           {
             "name": "nf-core",
@@ -1654,58 +1536,14 @@
           },
           "4": {
             "id": 4,
-            "name": "chemistry",
-            "type": "parameter_input",
-            "label": "chemistry",
-            "annotation": "10x Chromium chemistry (10xv2, 10xv3, dropseq)",
-            "tool_state": "{\"name\": \"chemistry\", \"parameter_type\": \"text\", \"default\": \"10xv2\"}",
-            "position": {
-              "top": 40,
-              "left": 40
-            },
-            "input_connections": {},
-            "inputs": [
-              {
-                "name": "chemistry",
-                "description": ""
-              }
-            ],
-            "outputs": [],
-            "workflow_outputs": [],
-            "post_job_actions": {}
-          },
-          "5": {
-            "id": 5,
-            "name": "resolution",
-            "type": "parameter_input",
-            "label": "resolution",
-            "annotation": "UMI deduplication algorithm (cr-like, parsimony, trivial)",
-            "tool_state": "{\"name\": \"resolution\", \"parameter_type\": \"text\", \"default\": \"cr-like\"}",
-            "position": {
-              "top": 50,
-              "left": 50
-            },
-            "input_connections": {},
-            "inputs": [
-              {
-                "name": "resolution",
-                "description": ""
-              }
-            ],
-            "outputs": [],
-            "workflow_outputs": [],
-            "post_job_actions": {}
-          },
-          "6": {
-            "id": 6,
             "name": "Simpleaf Index",
             "type": "tool",
             "label": "simpleaf_index",
             "annotation": "Build Piscem / Salmon reference index and transcript-to-gene mapping",
             "tool_state": "{\"__page__\": 0}",
             "position": {
-              "top": 60,
-              "left": 60
+              "top": 40,
+              "left": 40
             },
             "input_connections": {
               "fasta": [
@@ -1778,16 +1616,16 @@
               }
             }
           },
-          "7": {
-            "id": 7,
+          "5": {
+            "id": 5,
             "name": "Simpleaf Quant",
             "type": "tool",
             "label": "simpleaf_quant",
             "annotation": "Quantify single-cell FASTQ reads with simpleaf quant",
-            "tool_state": "{\"__page__\": 0}",
+            "tool_state": "{\"__page__\": 0, \"chemistry\": \"10xv2\", \"resolution\": \"cr-like\"}",
             "position": {
-              "top": 70,
-              "left": 70
+              "top": 50,
+              "left": 50
             },
             "input_connections": {
               "reads": [
@@ -1798,31 +1636,19 @@
               ],
               "index_archive": [
                 {
-                  "id": 6,
+                  "id": 4,
                   "output_name": "index_archive"
                 }
               ],
               "t2g": [
                 {
-                  "id": 6,
+                  "id": 4,
                   "output_name": "t2g"
                 }
               ],
               "whitelist": [
                 {
                   "id": 3,
-                  "output_name": "output"
-                }
-              ],
-              "chemistry": [
-                {
-                  "id": 4,
-                  "output_name": "output"
-                }
-              ],
-              "resolution": [
-                {
-                  "id": 5,
                   "output_name": "output"
                 }
               ]
@@ -1907,21 +1733,21 @@
               }
             }
           },
-          "8": {
-            "id": 8,
+          "6": {
+            "id": 6,
             "name": "QCatch Quality Assessment",
             "type": "tool",
             "label": "qcatch",
             "annotation": "Evaluate quality metrics and filter empty droplets with QCatch",
             "tool_state": "{\"__page__\": 0}",
             "position": {
-              "top": 80,
-              "left": 80
+              "top": 60,
+              "left": 60
             },
             "input_connections": {
               "h5ad": [
                 {
-                  "id": 7,
+                  "id": 5,
                   "output_name": "h5ad"
                 }
               ]
@@ -2043,7 +1869,7 @@
         ],
         "license": "MIT",
         "release": "0.1.0",
-        "uuid": "75cb7078-6a3d-4ba3-aa31-8eb20175adf4",
+        "uuid": "3bd6ad2a-4ac1-4b6b-aff4-ab02d56602d8",
         "creator": [
           {
             "name": "nf-core",
@@ -2283,7 +2109,7 @@
       "type": "tool",
       "label": "multiqc",
       "annotation": "Aggregate QC metrics from FastQC and STARsolo into an interactive HTML report",
-      "tool_state": "{\"__page__\": 0, \"comment\": \"\", \"export\": false, \"flat\": false, \"image_content_input\": null, \"png_plots\": false, \"title\": \"nf-core/scrnaseq Quality Report\"}",
+      "tool_state": "{\"comment\": \"\", \"export\": false, \"flat\": false, \"image_content_input\": null, \"png_plots\": false, \"results\": [{\"__index__\": 0, \"software_cond\": {\"software\": \"star\", \"__current_case__\": 29, \"output\": [{\"__index__\": 0, \"type\": {\"type\": \"log\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"type\": {\"type\": \"genecounts\", \"__current_case__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}}}]}}, {\"__index__\": 1, \"software_cond\": {\"software\": \"fastqc\", \"__current_case__\": 9, \"output\": [{\"__index__\": 0, \"type\": \"data\", \"input\": {\"__class__\": \"ConnectedValue\"}}]}}], \"title\": \"nf-core/scrnaseq Quality Report\", \"__page__\": 0}",
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4",
       "tool_version": "1.35+galaxy4",
       "tool_shed_repository": {

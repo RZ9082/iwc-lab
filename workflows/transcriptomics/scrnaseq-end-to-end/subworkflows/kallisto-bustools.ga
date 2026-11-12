@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "17629567-276e-4f8f-a0e3-3f8d966a67b1",
+  "uuid": "7702abc1-29ef-4271-ae58-26283d03e1fb",
   "creator": [
     {
       "name": "nf-core",
@@ -120,55 +120,11 @@
     },
     "4": {
       "id": 4,
-      "name": "technology",
-      "type": "parameter_input",
-      "label": "technology",
-      "annotation": "Barcode chemistry (e.g. 10XV2, 10XV3, DROPSEQ)",
-      "tool_state": "{\"name\": \"technology\", \"parameter_type\": \"text\", \"default\": \"10XV2\"}",
-      "position": {
-        "left": 50,
-        "top": 1010
-      },
-      "input_connections": {},
-      "inputs": [
-        {
-          "name": "technology",
-          "description": ""
-        }
-      ],
-      "outputs": [],
-      "workflow_outputs": [],
-      "post_job_actions": {}
-    },
-    "5": {
-      "id": 5,
-      "name": "workflow_mode",
-      "type": "parameter_input",
-      "label": "workflow_mode",
-      "annotation": "Kallisto quantification mode (standard, lamanno, nucleus)",
-      "tool_state": "{\"name\": \"workflow_mode\", \"parameter_type\": \"text\", \"default\": \"standard\"}",
-      "position": {
-        "left": 50,
-        "top": 1250
-      },
-      "input_connections": {},
-      "inputs": [
-        {
-          "name": "workflow_mode",
-          "description": ""
-        }
-      ],
-      "outputs": [],
-      "workflow_outputs": [],
-      "post_job_actions": {}
-    },
-    "6": {
-      "id": 6,
       "name": "Kallisto-Bustools Reference",
       "type": "tool",
       "label": "kb_ref",
       "annotation": "Build kallisto index and transcript-to-gene mapping from genome FASTA and GTF",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"__page__\": 0, \"workflow_mode\": \"standard\"}",
       "position": {
         "left": 430,
         "top": 50
@@ -183,12 +139,6 @@
         "gtf": [
           {
             "id": 2,
-            "output_name": "output"
-          }
-        ],
-        "workflow_mode": [
-          {
-            "id": 5,
             "output_name": "output"
           }
         ]
@@ -263,13 +213,13 @@
         }
       }
     },
-    "7": {
-      "id": 7,
+    "5": {
+      "id": 5,
       "name": "Kallisto-Bustools Count",
       "type": "tool",
       "label": "kb_count",
       "annotation": "Quantify single-cell FASTQ reads against kallisto index",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"__page__\": 0, \"technology\": \"10XV2\", \"workflow_mode\": \"standard\"}",
       "position": {
         "left": 810,
         "top": 50
@@ -283,31 +233,19 @@
         ],
         "index": [
           {
-            "id": 6,
+            "id": 4,
             "output_name": "index"
           }
         ],
         "t2g": [
           {
-            "id": 6,
+            "id": 4,
             "output_name": "t2g"
           }
         ],
         "whitelist": [
           {
             "id": 3,
-            "output_name": "output"
-          }
-        ],
-        "technology": [
-          {
-            "id": 4,
-            "output_name": "output"
-          }
-        ],
-        "workflow_mode": [
-          {
-            "id": 5,
             "output_name": "output"
           }
         ]

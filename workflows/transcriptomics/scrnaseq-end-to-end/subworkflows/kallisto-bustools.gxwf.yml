@@ -40,16 +40,6 @@ inputs:
     optional: true
     label: Cell Barcode Whitelist
     doc: Whitelist of valid cell barcodes (optional)
-  technology:
-    type: text
-    default: 10XV2
-    label: Single-Cell Technology
-    doc: Barcode chemistry (e.g. 10XV2, 10XV3, DROPSEQ)
-  workflow_mode:
-    type: text
-    default: standard
-    label: Workflow Mode
-    doc: Kallisto quantification mode (standard, lamanno, nucleus)
 outputs:
   Raw Gene Expression Matrix (MTX):
     outputSource: kb_count/raw_matrix
@@ -117,7 +107,8 @@ steps:
   in:
     fasta: fasta
     gtf: gtf
-    workflow_mode: workflow_mode
+  state:
+    workflow_mode: standard
 - id: kb_count
   label: kb_count
   doc: Quantify single-cell FASTQ reads against kallisto index
@@ -249,5 +240,6 @@ steps:
     index: kb_ref/index
     t2g: kb_ref/t2g
     whitelist: whitelist
-    technology: technology
-    workflow_mode: workflow_mode
+  state:
+    technology: 10XV2
+    workflow_mode: standard

@@ -39,16 +39,6 @@ inputs:
     format: txt
     label: Barcode Whitelist
     doc: Whitelist of valid cell barcodes
-  chemistry:
-    type: text
-    default: 10xv2
-    label: Chemistry / Protocol
-    doc: 10x Chromium chemistry (10xv2, 10xv3, dropseq)
-  resolution:
-    type: text
-    default: cr-like
-    label: UMI Resolution Strategy
-    doc: UMI deduplication algorithm (cr-like, parsimony, trivial)
 outputs:
   Simpleaf AnnData Matrix (H5AD):
     outputSource: simpleaf_quant/h5ad
@@ -198,8 +188,9 @@ steps:
     index_archive: simpleaf_index/index_archive
     t2g: simpleaf_index/t2g
     whitelist: whitelist
-    chemistry: chemistry
-    resolution: resolution
+  state:
+    chemistry: 10xv2
+    resolution: cr-like
 - id: qcatch
   label: qcatch
   doc: Evaluate quality metrics and filter empty droplets with QCatch

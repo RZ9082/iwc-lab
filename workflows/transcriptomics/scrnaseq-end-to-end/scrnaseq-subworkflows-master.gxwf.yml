@@ -508,16 +508,6 @@ steps:
           format: h5ad
           label: Raw Unfiltered AnnData Matrix
           doc: Raw single-cell gene expression matrix in H5AD format
-        fpr:
-          type: float
-          default: 0.01
-          label: Expected False Positive Rate
-          doc: Nominal target false positive rate for CellBender
-        epochs:
-          type: integer
-          default: 150
-          label: Number of Training Epochs
-          doc: Training epochs for CellBender deep generative model
       outputs:
         CellBender Filtered AnnData Matrix:
           outputSource: filter_barcodes/filtered_h5ad
@@ -623,8 +613,9 @@ steps:
               '
         in:
           h5ad: raw_h5ad
-          fpr: fpr
-          epochs: epochs
+        state:
+          epochs: 150
+          fpr: 0.01
       - id: filter_barcodes
         label: filter_barcodes
         doc: Subset AnnData matrix using CellBender verified barcodes
@@ -734,16 +725,6 @@ steps:
           optional: true
           label: Cell Barcode Whitelist
           doc: Whitelist of valid cell barcodes (optional)
-        technology:
-          type: text
-          default: 10XV2
-          label: Single-Cell Technology
-          doc: Barcode chemistry (e.g. 10XV2, 10XV3, DROPSEQ)
-        workflow_mode:
-          type: text
-          default: standard
-          label: Workflow Mode
-          doc: Kallisto quantification mode (standard, lamanno, nucleus)
       outputs:
         Raw Gene Expression Matrix (MTX):
           outputSource: kb_count/raw_matrix
@@ -812,7 +793,8 @@ steps:
         in:
           fasta: fasta
           gtf: gtf
-          workflow_mode: workflow_mode
+        state:
+          workflow_mode: standard
       - id: kb_count
         label: kb_count
         doc: Quantify single-cell FASTQ reads against kallisto index
@@ -948,8 +930,9 @@ steps:
           index: kb_ref/index
           t2g: kb_ref/t2g
           whitelist: whitelist
-          technology: technology
-          workflow_mode: workflow_mode
+        state:
+          technology: 10XV2
+          workflow_mode: standard
     in:
       reads: reads
       fasta: fasta
@@ -1000,16 +983,6 @@ steps:
           format: txt
           label: Barcode Whitelist
           doc: Whitelist of valid cell barcodes
-        chemistry:
-          type: text
-          default: 10xv2
-          label: Chemistry / Protocol
-          doc: 10x Chromium chemistry (10xv2, 10xv3, dropseq)
-        resolution:
-          type: text
-          default: cr-like
-          label: UMI Resolution Strategy
-          doc: UMI deduplication algorithm (cr-like, parsimony, trivial)
       outputs:
         Simpleaf AnnData Matrix (H5AD):
           outputSource: simpleaf_quant/h5ad
@@ -1163,8 +1136,9 @@ steps:
           index_archive: simpleaf_index/index_archive
           t2g: simpleaf_index/t2g
           whitelist: whitelist
-          chemistry: chemistry
-          resolution: resolution
+        state:
+          chemistry: 10xv2
+          resolution: cr-like
       - id: qcatch
         label: qcatch
         doc: Evaluate quality metrics and filter empty droplets with QCatch
