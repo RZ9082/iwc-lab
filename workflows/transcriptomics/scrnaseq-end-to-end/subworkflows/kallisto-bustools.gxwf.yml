@@ -34,6 +34,12 @@ inputs:
     format: gtf
     label: Gene Annotation GTF
     doc: Gene annotation file in GTF format
+  whitelist:
+    type: data
+    format: txt,tabular
+    optional: true
+    label: Cell Barcode Whitelist
+    doc: Whitelist of valid cell barcodes (optional)
   technology:
     type: text
     default: 10XV2
@@ -242,5 +248,6 @@ steps:
     reads: reads
     index: kb_ref/index
     t2g: kb_ref/t2g
+    whitelist: whitelist
     technology: technology
     workflow_mode: workflow_mode

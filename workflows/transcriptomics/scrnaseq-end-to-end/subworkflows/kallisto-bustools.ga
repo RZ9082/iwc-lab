@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "8f2f5a45-aba0-43ab-90f3-fa816b80ea1b",
+  "uuid": "79f4b1a4-c621-473a-a822-8a6e7cc42155",
   "creator": [
     {
       "name": "nf-core",
@@ -98,6 +98,28 @@
     },
     "3": {
       "id": 3,
+      "name": "whitelist",
+      "type": "data_input",
+      "label": "whitelist",
+      "annotation": "Whitelist of valid cell barcodes (optional)",
+      "tool_state": "{\"name\": \"whitelist\", \"optional\": true, \"format\": [\"txt,tabular\"]}",
+      "position": {
+        "left": 50,
+        "top": 770
+      },
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "whitelist",
+          "description": ""
+        }
+      ],
+      "outputs": [],
+      "workflow_outputs": [],
+      "post_job_actions": {}
+    },
+    "4": {
+      "id": 4,
       "name": "technology",
       "type": "parameter_input",
       "label": "technology",
@@ -105,7 +127,7 @@
       "tool_state": "{\"name\": \"technology\", \"parameter_type\": \"text\", \"default\": \"10XV2\"}",
       "position": {
         "left": 50,
-        "top": 770
+        "top": 1010
       },
       "input_connections": {},
       "inputs": [
@@ -118,8 +140,8 @@
       "workflow_outputs": [],
       "post_job_actions": {}
     },
-    "4": {
-      "id": 4,
+    "5": {
+      "id": 5,
       "name": "workflow_mode",
       "type": "parameter_input",
       "label": "workflow_mode",
@@ -127,7 +149,7 @@
       "tool_state": "{\"name\": \"workflow_mode\", \"parameter_type\": \"text\", \"default\": \"standard\"}",
       "position": {
         "left": 50,
-        "top": 1010
+        "top": 1250
       },
       "input_connections": {},
       "inputs": [
@@ -140,8 +162,8 @@
       "workflow_outputs": [],
       "post_job_actions": {}
     },
-    "5": {
-      "id": 5,
+    "6": {
+      "id": 6,
       "name": "Kallisto-Bustools Reference",
       "type": "tool",
       "label": "kb_ref",
@@ -166,7 +188,7 @@
         ],
         "workflow_mode": [
           {
-            "id": 4,
+            "id": 5,
             "output_name": "output"
           }
         ]
@@ -241,8 +263,8 @@
         }
       }
     },
-    "6": {
-      "id": 6,
+    "7": {
+      "id": 7,
       "name": "Kallisto-Bustools Count",
       "type": "tool",
       "label": "kb_count",
@@ -261,25 +283,31 @@
         ],
         "index": [
           {
-            "id": 5,
+            "id": 6,
             "output_name": "index"
           }
         ],
         "t2g": [
           {
-            "id": 5,
+            "id": 6,
             "output_name": "t2g"
           }
         ],
-        "technology": [
+        "whitelist": [
           {
             "id": 3,
             "output_name": "output"
           }
         ],
-        "workflow_mode": [
+        "technology": [
           {
             "id": 4,
+            "output_name": "output"
+          }
+        ],
+        "workflow_mode": [
+          {
+            "id": 5,
             "output_name": "output"
           }
         ]
