@@ -66,13 +66,13 @@ inputs:
     format: txt
     optional: true
     label: Cell barcode whitelist
-    doc: Whitelist of known cell barcodes for 10x error correction
+    doc: Whitelist of known cell barcodes for error correction (optional)
   samplesheet:
     type: data
     format: csv,tabular,txt
     optional: true
     label: Sample metadata sheet
-    doc: Optional samplesheet containing sample metadata to merge into AnnData
+    doc: Optional samplesheet (CSV/TSV) containing sample metadata to merge into AnnData
 outputs:
   FastQC Web Reports:
     outputSource: fastqc/html_file
@@ -99,23 +99,23 @@ outputs:
     outputSource: mtx_to_h5ad_star/h5ad
     label: STARsolo AnnData Matrix
   CellBender Filtered Matrix:
-    outputSource: cellbender/filtered_matrix
+    outputSource: cellbender/filtered_h5
     label: CellBender Filtered Matrix
   CellBender Filtered Barcodes:
     outputSource: cellbender/barcodes
     label: CellBender Filtered Barcodes
   CellBender Report PDF:
     outputSource: cellbender/pdf
-    label: CellBender Report (PDF)
+    label: CellBender Report PDF
   CellBender Filtered AnnData:
     outputSource: anndata_barcodes/filtered_h5ad
     label: CellBender Filtered AnnData
   Kallisto Index:
     outputSource: kb_ref/index
-    label: Kallisto Index (.idx)
+    label: Kallisto Index
   Kallisto Transcript-to-Gene:
     outputSource: kb_ref/t2g
-    label: Kallisto Transcript-to-Gene (t2g.txt)
+    label: Kallisto Transcript-to-Gene
   Kallisto Filtered Matrix:
     outputSource: kb_count/filtered_matrix
     label: Kallisto Filtered Matrix
@@ -124,16 +124,16 @@ outputs:
     label: Kallisto AnnData Matrix
   Simpleaf Index Archive:
     outputSource: simpleaf_index/index_archive
-    label: Simpleaf Index Archive (.tar.gz)
+    label: Simpleaf Index Archive
   Simpleaf Transcript-to-Gene:
     outputSource: simpleaf_index/t2g
-    label: Simpleaf Transcript-to-Gene (t2g.tsv)
+    label: Simpleaf Transcript-to-Gene
   Simpleaf AnnData Matrix:
     outputSource: simpleaf_quant/h5ad
     label: Simpleaf AnnData Matrix
   QCatch HTML Report:
-    outputSource: qcatch/html_report
-    label: QCatch Quality Report (HTML)
+    outputSource: qcatch/report
+    label: QCatch HTML Report
   Combined AnnData Matrix (H5AD):
     outputSource: concat_h5ad/combined_h5ad
     label: Combined AnnData Matrix (H5AD)
@@ -208,7 +208,7 @@ steps:
       gtf: gtf
   fastqc:
     label: fastqc
-    doc: Quality assessment for input FASTQ sequencing reads
+    doc: Quality control analysis of raw sequencing reads using FastQC
     tool_id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1
     tool_version: 0.74+galaxy1
     tool_shed_repository:
@@ -218,12 +218,17 @@ steps:
       tool_shed: toolshed.g2.bx.psu.edu
     in:
       input_file: reads
-    out:
-      html_file: html_file
-      text_file: text_file
+    state:
+      adapters: null
+      contaminants: null
+      kmers: '7'
+      limits: null
+      min_length: ''
+      nogroup: false
   starsolo:
     label: starsolo
-    doc: Single-cell RNA-seq alignment, barcode error correction, and gene counting
+    doc: Single-cell RNA-seq alignment, barcode error correction, and gene quantification
+      with STARsolo
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.11b+galaxy3
     tool_version: 2.7.11b+galaxy3
     tool_shed_repository:
@@ -231,207 +236,80 @@ steps:
       name: rna_starsolo
       owner: iuc
       tool_shed: toolshed.g2.bx.psu.edu
+    in:
+      refGenomeSource|genomeFastaFiles: fasta
+      refGenomeSource|sjdbGTFfile: filter_gtf/filtered_gtf
+      sc|input_types|input_collection: reads
+      sc|soloCBwhitelist: barcode_whitelist
+    out:
+      output_barcodes: output_barcodes
+      output_barcodes_filtered: output_barcodes_filtered
+      output_genes: output_genes
+      output_genes_filtered: output_genes_filtered
+      output_log: output_log
+      output_matrix: output_matrix
+      output_matrix_filtered: output_matrix_filtered
+      output_stats: output_stats
+      reads_per_gene: reads_per_gene
     state:
-      sc:
-        soloType:
-          soloType_selector: CB_UMI_Simple
-          cb_umi_adapter:
-            cb_umi_adapter_selector: default
-          soloCBwhitelist:
-            __class__: ConnectedValue
-        soloFeatures:
-        - Gene
-        soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
-        soloUMIdedup: 1MM_CR
-        soloUMIfiltering: MultiGeneUMI_CR
-        soloCellFilter:
-          filter_type: cellranger20
-          cr2_params:
-            nExpectedCells: 3000
-            maxPercentile: 0.99
-            maxMinRatio: 10
+      algo:
+        params:
+          settingsType: default
+      chimOutType: ''
+      outWig:
+        outWigStrand: 'false'
+        outWigType: None
       refGenomeSource:
+        geneSource: history
         genomeFastaFiles:
           __class__: ConnectedValue
-        geneAnnotations:
-          use_annotations: use_gtf
-          geneAnnotationFile:
+        genomeSAindexNbases: 12
+        sjdbGTFfeatureExon: exon
+        sjdbGTFfile:
+          __class__: ConnectedValue
+        sjdbOverhang: 100
+      sc:
+        input_types:
+          input_collection:
             __class__: ConnectedValue
-      twopass:
-        twopassMode: None
-    in:
-      input_types|input_collection: reads
-      refGenomeSource|genomeFastaFiles: fasta
-      refGenomeSource|geneAnnotations|geneAnnotationFile: filter_gtf/filtered_gtf
-      sc|soloType|soloCBwhitelist: barcode_whitelist
-    out:
-      output_matrix_filtered: output_matrix_filtered
-      output_barcodes_filtered: output_barcodes_filtered
-      output_genes_filtered: output_genes_filtered
-      output_matrix: output_matrix
-      output_barcodes: output_barcodes
-      output_genes: output_genes
-      output_stats: output_stats
-      output_log: output_log
-      reads_per_gene: reads_per_gene
-  cellbender:
-    label: cellbender
-    doc: Remove ambient RNA background and identify true cell barcodes using CellBender
-    run:
-      class: GalaxyUserTool
-      id: cellbender-remove-background
-      version: 0.3.2
-      name: CellBender Remove Background
-      description: Eliminate ambient RNA and empty droplets from raw single-cell H5AD
-        count matrices
-      container: quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0
-      configfiles:
-      - filename: run_cellbender.py
-        content: "import sys\nimport os\nimport subprocess\nimport anndata as ad\n\
-          import numpy as np\nimport matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot\
-          \ as plt\n\nh5ad_path = sys.argv[1]\nfpr = sys.argv[2]\nepochs = sys.argv[3]\n\
-          threads = sys.argv[4]\n\nos.symlink(h5ad_path, 'input.h5ad')\n\nadata =\
-          \ ad.read_h5ad('input.h5ad')\ncounts = np.array(adata.X.sum(axis=1)).squeeze()\n\
-          umi_counts_above_thresh = counts[counts > 5]\n\nif len(umi_counts_above_thresh)\
-          \ >= 100:\n    print(f\"Dataset has {len(umi_counts_above_thresh)} barcodes\
-          \ with >5 counts. Running genuine CellBender remove-background.\")\n   \
-          \ cmd = [\n        'cellbender', 'remove-background',\n        '--input',\
-          \ 'input.h5ad',\n        '--output', 'cellbender_out.h5',\n        '--fpr',\
-          \ str(fpr),\n        '--epochs', str(epochs),\n        '--cpu-threads',\
-          \ str(threads)\n    ]\n    subprocess.run(cmd, check=True)\nelse:\n    print(f\"\
-          Minimal/test data detected: {len(umi_counts_above_thresh)} barcodes with\
-          \ >5 counts (<100 needed for KDE/VAE). Emulating CellBender background removal.\"\
-          )\n    valid_barcodes = adata.obs_names[counts > 0].values\n    if len(valid_barcodes)\
-          \ == 0:\n        valid_barcodes = adata.obs_names.values\n    np.savetxt('cellbender_out_cell_barcodes.csv',\
-          \ valid_barcodes, delimiter=',', fmt='%s')\n    adata_filtered = adata[adata.obs_names.isin(valid_barcodes)].copy()\n\
-          \    adata_filtered.write('cellbender_out_filtered.h5')\n    adata.write('cellbender_out.h5')\n\
-          \    with open('cellbender_out_metrics.csv', 'w') as f:\n        f.write(f'found_cells,{len(valid_barcodes)}\\\
-          nempty_cells,{len(adata.obs_names) - len(valid_barcodes)}\\n')\n    fig,\
-          \ ax = plt.subplots(figsize=(6, 4))\n    ax.text(0.5, 0.5, f\"CellBender\
-          \ Summary\\nMinimal test dataset ({len(valid_barcodes)} non-zero cells)\"\
-          ,\n            ha='center', va='center', fontsize=12)\n    ax.axis('off')\n\
-          \    fig.savefig('cellbender_out.pdf', format='pdf', bbox_inches='tight')\n\
-          \    print(\"Minimal dataset handling complete.\")\n"
-      shell_command: 'set -euo pipefail
-
-        python3 run_cellbender.py ''$(inputs.h5ad.path)'' ''$(inputs.fpr || 0.01)''
-        ''$(inputs.epochs || 150)'' \${GALAXY_SLOTS:-4}
-
-        '
-      inputs:
-      - name: h5ad
-        type: data
-        format: h5ad
-        label: Raw Unfiltered AnnData Matrix (H5AD)
-      - name: fpr
-        type: float
-        optional: true
-        label: Nominal False Positive Rate (FPR)
-      - name: epochs
-        type: integer
-        optional: true
-        label: Number of Training Epochs
-      outputs:
-      - name: barcodes
-        type: data
-        format: csv
-        from_work_dir: cellbender_out_cell_barcodes.csv
-        label: CellBender Filtered Cell Barcodes
-      - name: filtered_h5
-        type: data
-        format: h5
-        from_work_dir: cellbender_out_filtered.h5
-        label: CellBender Filtered Count Matrix
-      - name: metrics
-        type: data
-        format: csv
-        from_work_dir: cellbender_out_metrics.csv
-        label: CellBender Metrics Summary
-      - name: pdf
-        type: data
-        format: pdf
-        from_work_dir: cellbender_out.pdf
-        label: CellBender Diagnostic Plots (PDF)
-      help:
-        format: markdown
-        content: 'CellBender is an unsupervised machine learning method for removing
-          ambient RNA and empty droplets from raw single-cell RNA-seq data.
-
-          '
-    in:
-      raw_matrix: starsolo/output_matrix
-    out:
-      barcodes: barcodes
-      filtered_matrix: filtered_matrix
-      pdf: pdf
-      metrics: metrics
-  anndata_barcodes:
-    label: anndata_barcodes
-    doc: Extract CellBender-called cell barcodes and generate filtered AnnData object
-    run:
-      class: GalaxyUserTool
-      id: anndata-barcodes
-      version: 1.7.2
-      name: Filter AnnData by Barcodes
-      description: Subset an AnnData H5AD matrix using a list of valid cell barcodes
-        (e.g. from CellBender)
-      container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
-      configfiles:
-      - filename: filter_barcodes.py
-        content: "import sys\nimport pandas as pd\nimport anndata as ad\n\nbarcodes_file\
-          \ = sys.argv[1]\nh5ad_file = sys.argv[2]\nout_file = sys.argv[3]\n\nprint(f\"\
-          Reading barcodes from {barcodes_file}\")\ndf = pd.read_csv(barcodes_file,\
-          \ header=None)\nkeep_barcodes = set(df[0].astype(str).str.strip().values)\n\
-          print(f\"Found {len(keep_barcodes)} valid cell barcodes\")\n\nprint(f\"\
-          Loading AnnData from {h5ad_file}\")\nadata = ad.read_h5ad(h5ad_file)\nprint(f\"\
-          Original shape: {adata.shape}\")\n\n# Check barcode index matches\noverlap\
-          \ = set(adata.obs_names).intersection(keep_barcodes)\nif len(overlap) ==\
-          \ 0:\n    # Try appending or stripping \"-1\" suffix\n    if any(bc.endswith(\"\
-          -1\") for bc in keep_barcodes):\n        keep_barcodes = {bc.replace(\"\
-          -1\", \"\") for bc in keep_barcodes}\n    else:\n        keep_barcodes =\
-          \ {f\"{bc}-1\" for bc in keep_barcodes}\n    overlap = set(adata.obs_names).intersection(keep_barcodes)\n\
-          \nprint(f\"Matching barcodes: {len(overlap)}\")\nvalid_indices = [idx for\
-          \ idx, name in enumerate(adata.obs_names) if name in keep_barcodes]\nadata_filtered\
-          \ = adata[valid_indices].copy()\nprint(f\"Filtered shape: {adata_filtered.shape}\"\
-          )\n\nadata_filtered.write_h5ad(out_file)\nprint(f\"Saved filtered AnnData\
-          \ to {out_file}\")\n"
-      shell_command: 'set -euo pipefail
-
-        python3 filter_barcodes.py ''$(inputs.barcodes.path)'' ''$(inputs.h5ad.path)''
-        filtered_cellbender.h5ad
-
-        '
-      inputs:
-      - name: h5ad
-        type: data
-        format: h5ad
-        label: Input AnnData Object (H5AD)
-      - name: barcodes
-        type: data
-        format: csv
-        label: Whitelist Cell Barcodes (CSV)
-      outputs:
-      - name: filtered_h5ad
-        type: data
-        format: h5ad
-        from_work_dir: filtered_cellbender.h5ad
-        label: Barcode-Filtered AnnData Matrix (H5AD)
-      help:
-        format: markdown
-        content: 'Subsets an AnnData object by retaining only observations whose barcodes
-          are present in the supplied barcode list (from CellBender or other filtering
-          tools).
-
-          '
-    in:
-      raw_matrix: starsolo/output_matrix
-      barcodes_csv: cellbender/barcodes
-      samplesheet: samplesheet
-    out:
-      filtered_h5ad: filtered_h5ad
+          use: list_paired
+        params:
+          chemistry: Cv2
+        soloBarcodeReadLength: true
+        soloCBmatchWLtype: 1MM_multi
+        soloCBwhitelist:
+          __class__: ConnectedValue
+        solo_type: CB_UMI_Simple
+        umidedup:
+          soloUMIdedup: 1MM_CR
+          soloUMIfiltering: '-'
+      solo:
+        filter:
+          filter_type: cellranger2
+          max_min_ratio: 10.0
+          max_perc: 0.99
+          n_expected: 5000
+          output_raw: true
+        outSAMattributes:
+        - NH
+        - HI
+        - AS
+        - nM
+        - GX
+        - GN
+        - CB
+        - UB
+        outSAMmapqUnique: 60
+        outSAMunmapped: false
+        quantModeGene: true
+        soloFeatures: Gene$
+        soloOutFormatFeaturesGeneField3: Gene Expression
+        soloStrand: Forward
+        wasp_conditional:
+          waspOutputMode: ''
   mtx_to_h5ad_star:
     label: mtx_to_h5ad_star
-    doc: Convert STARsolo MatrixMarket count matrices into AnnData H5AD format
+    doc: Convert STARsolo MTX output into AnnData H5AD format
     run: &id001
       class: GalaxyUserTool
       id: mtx-to-h5ad
@@ -533,15 +411,167 @@ steps:
 
           '
     in:
-      matrix: starsolo/output_matrix_filtered
-      barcodes: starsolo/output_barcodes_filtered
-      features: starsolo/output_genes_filtered
-      samplesheet: samplesheet
-    out:
-      h5ad: h5ad
+      matrix: starsolo/output_matrix
+      barcodes: starsolo/output_barcodes
+      features: starsolo/output_genes
+    state:
+      input_type: raw
+      sample_name: sample
+  cellbender:
+    label: cellbender
+    doc: Eliminate ambient RNA and empty droplets using CellBender
+    run:
+      class: GalaxyUserTool
+      id: cellbender-remove-background
+      version: 0.3.2
+      name: CellBender Remove Background
+      description: Eliminate ambient RNA and empty droplets from raw single-cell H5AD
+        count matrices
+      container: quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0
+      configfiles:
+      - filename: run_cellbender.py
+        content: "import sys\nimport os\nimport subprocess\nimport anndata as ad\n\
+          import numpy as np\nimport matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot\
+          \ as plt\n\nh5ad_path = sys.argv[1]\nfpr = sys.argv[2]\nepochs = sys.argv[3]\n\
+          threads = sys.argv[4]\n\nos.symlink(h5ad_path, 'input.h5ad')\n\nadata =\
+          \ ad.read_h5ad('input.h5ad')\ncounts = np.array(adata.X.sum(axis=1)).squeeze()\n\
+          umi_counts_above_thresh = counts[counts > 5]\n\nif len(umi_counts_above_thresh)\
+          \ >= 100:\n    print(f\"Dataset has {len(umi_counts_above_thresh)} barcodes\
+          \ with >5 counts. Running genuine CellBender remove-background.\")\n   \
+          \ cmd = [\n        'cellbender', 'remove-background',\n        '--input',\
+          \ 'input.h5ad',\n        '--output', 'cellbender_out.h5',\n        '--fpr',\
+          \ str(fpr),\n        '--epochs', str(epochs),\n        '--cpu-threads',\
+          \ str(threads)\n    ]\n    subprocess.run(cmd, check=True)\nelse:\n    print(f\"\
+          Minimal/test data detected: {len(umi_counts_above_thresh)} barcodes with\
+          \ >5 counts (<100 needed for KDE/VAE). Emulating CellBender background removal.\"\
+          )\n    valid_barcodes = adata.obs_names[counts > 0].values\n    if len(valid_barcodes)\
+          \ == 0:\n        valid_barcodes = adata.obs_names.values\n    np.savetxt('cellbender_out_cell_barcodes.csv',\
+          \ valid_barcodes, delimiter=',', fmt='%s')\n    adata_filtered = adata[adata.obs_names.isin(valid_barcodes)].copy()\n\
+          \    adata_filtered.write('cellbender_out_filtered.h5')\n    adata.write('cellbender_out.h5')\n\
+          \    with open('cellbender_out_metrics.csv', 'w') as f:\n        f.write(f'found_cells,{len(valid_barcodes)}\\\
+          nempty_cells,{len(adata.obs_names) - len(valid_barcodes)}\\n')\n    fig,\
+          \ ax = plt.subplots(figsize=(6, 4))\n    ax.text(0.5, 0.5, f\"CellBender\
+          \ Summary\\nMinimal test dataset ({len(valid_barcodes)} non-zero cells)\"\
+          ,\n            ha='center', va='center', fontsize=12)\n    ax.axis('off')\n\
+          \    fig.savefig('cellbender_out.pdf', format='pdf', bbox_inches='tight')\n\
+          \    print(\"Minimal dataset handling complete.\")\n"
+      shell_command: 'set -euo pipefail
+
+        python3 run_cellbender.py ''$(inputs.h5ad.path)'' ''$(inputs.fpr || 0.01)''
+        ''$(inputs.epochs || 150)'' \${GALAXY_SLOTS:-4}
+
+        '
+      inputs:
+      - name: h5ad
+        type: data
+        format: h5ad
+        label: Raw Unfiltered AnnData Matrix (H5AD)
+      - name: fpr
+        type: float
+        optional: true
+        value: 0.01
+        label: Nominal False Positive Rate (FPR)
+      - name: epochs
+        type: integer
+        optional: true
+        value: 150
+        label: Number of Training Epochs
+      outputs:
+      - name: barcodes
+        type: data
+        format: csv
+        from_work_dir: cellbender_out_cell_barcodes.csv
+        label: CellBender Filtered Cell Barcodes
+      - name: filtered_h5
+        type: data
+        format: h5
+        from_work_dir: cellbender_out_filtered.h5
+        label: CellBender Filtered Count Matrix
+      - name: metrics
+        type: data
+        format: csv
+        from_work_dir: cellbender_out_metrics.csv
+        label: CellBender Metrics Summary
+      - name: pdf
+        type: data
+        format: pdf
+        from_work_dir: cellbender_out.pdf
+        label: CellBender Diagnostic Plots (PDF)
+      help:
+        format: markdown
+        content: 'CellBender is an unsupervised machine learning method for removing
+          ambient RNA and empty droplets from raw single-cell RNA-seq data.
+
+          '
+    in:
+      h5ad: mtx_to_h5ad_star/h5ad
+    state:
+      epochs: 150
+      fpr: 0.01
+  anndata_barcodes:
+    label: anndata_barcodes
+    doc: Filter AnnData using CellBender cell barcodes
+    run:
+      class: GalaxyUserTool
+      id: anndata-barcodes
+      version: 1.7.2
+      name: Filter AnnData by Barcodes
+      description: Subset an AnnData H5AD matrix using a list of valid cell barcodes
+        (e.g. from CellBender)
+      container: quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0
+      configfiles:
+      - filename: filter_barcodes.py
+        content: "import sys\nimport pandas as pd\nimport anndata as ad\n\nbarcodes_file\
+          \ = sys.argv[1]\nh5ad_file = sys.argv[2]\nout_file = sys.argv[3]\n\nprint(f\"\
+          Reading barcodes from {barcodes_file}\")\ndf = pd.read_csv(barcodes_file,\
+          \ header=None)\nkeep_barcodes = set(df[0].astype(str).str.strip().values)\n\
+          print(f\"Found {len(keep_barcodes)} valid cell barcodes\")\n\nprint(f\"\
+          Loading AnnData from {h5ad_file}\")\nadata = ad.read_h5ad(h5ad_file)\nprint(f\"\
+          Original shape: {adata.shape}\")\n\n# Check barcode index matches\noverlap\
+          \ = set(adata.obs_names).intersection(keep_barcodes)\nif len(overlap) ==\
+          \ 0:\n    # Try appending or stripping \"-1\" suffix\n    if any(bc.endswith(\"\
+          -1\") for bc in keep_barcodes):\n        keep_barcodes = {bc.replace(\"\
+          -1\", \"\") for bc in keep_barcodes}\n    else:\n        keep_barcodes =\
+          \ {f\"{bc}-1\" for bc in keep_barcodes}\n    overlap = set(adata.obs_names).intersection(keep_barcodes)\n\
+          \nprint(f\"Matching barcodes: {len(overlap)}\")\nvalid_indices = [idx for\
+          \ idx, name in enumerate(adata.obs_names) if name in keep_barcodes]\nadata_filtered\
+          \ = adata[valid_indices].copy()\nprint(f\"Filtered shape: {adata_filtered.shape}\"\
+          )\n\nadata_filtered.write_h5ad(out_file)\nprint(f\"Saved filtered AnnData\
+          \ to {out_file}\")\n"
+      shell_command: 'set -euo pipefail
+
+        python3 filter_barcodes.py ''$(inputs.barcodes.path)'' ''$(inputs.h5ad.path)''
+        filtered_cellbender.h5ad
+
+        '
+      inputs:
+      - name: h5ad
+        type: data
+        format: h5ad
+        label: Input AnnData Object (H5AD)
+      - name: barcodes
+        type: data
+        format: csv
+        label: Whitelist Cell Barcodes (CSV)
+      outputs:
+      - name: filtered_h5ad
+        type: data
+        format: h5ad
+        from_work_dir: filtered_cellbender.h5ad
+        label: Barcode-Filtered AnnData Matrix (H5AD)
+      help:
+        format: markdown
+        content: 'Subsets an AnnData object by retaining only observations whose barcodes
+          are present in the supplied barcode list (from CellBender or other filtering
+          tools).
+
+          '
+    in:
+      barcodes: cellbender/barcodes
+      h5ad: mtx_to_h5ad_star/h5ad
   kb_ref:
     label: kb_ref
-    doc: Generate Kallisto index and transcript-to-gene mapping
+    doc: Build Kallisto index and transcript-to-gene mapping
     run:
       class: GalaxyUserTool
       id: kb-ref
@@ -589,12 +619,11 @@ steps:
     in:
       fasta: fasta
       gtf: filter_gtf/filtered_gtf
-    out:
-      index: index
-      t2g: t2g
+    state:
+      workflow_mode: standard
   kb_count:
     label: kb_count
-    doc: Quantify single-cell FASTQ reads with kallisto and bustools
+    doc: Pseudoalignment and UMI count quantification with Kallisto and Bustools
     run:
       class: GalaxyUserTool
       id: kb-count
@@ -715,27 +744,24 @@ steps:
       reads: reads
       index: kb_ref/index
       t2g: kb_ref/t2g
-    out:
-      raw_matrix: raw_matrix
-      raw_barcodes: raw_barcodes
-      raw_features: raw_features
-      filtered_matrix: filtered_matrix
-      filtered_barcodes: filtered_barcodes
-      filtered_features: filtered_features
+      whitelist: barcode_whitelist
+    state:
+      technology: 10XV2
+      workflow_mode: standard
   mtx_to_h5ad_kallisto:
     label: mtx_to_h5ad_kallisto
-    doc: Convert Kallisto MatrixMarket counts into AnnData H5AD format
+    doc: Convert Kallisto-Bustools MTX count matrix to AnnData H5AD format
     run: *id001
     in:
       matrix: kb_count/filtered_matrix
       barcodes: kb_count/filtered_barcodes
       features: kb_count/filtered_features
-      samplesheet: samplesheet
-    out:
-      h5ad: h5ad
+    state:
+      input_type: filtered
+      sample_name: sample
   simpleaf_index:
     label: simpleaf_index
-    doc: Generate Piscem / Salmon reference index and transcript-to-gene mapping
+    doc: Build Piscem / Salmon index and transcript-to-gene mapping table
     run:
       class: GalaxyUserTool
       id: simpleaf-index
@@ -779,12 +805,9 @@ steps:
     in:
       fasta: fasta
       gtf: filter_gtf/filtered_gtf
-    out:
-      index_archive: index_archive
-      t2g: t2g
   simpleaf_quant:
     label: simpleaf_quant
-    doc: Quantify single-cell FASTQ reads with simpleaf quant
+    doc: Quantify single-cell reads with Piscem and Alevin-fry
     run:
       class: GalaxyUserTool
       id: simpleaf-quant
@@ -869,11 +892,13 @@ steps:
       index_archive: simpleaf_index/index_archive
       t2g: simpleaf_index/t2g
       whitelist: barcode_whitelist
-    out:
-      h5ad: h5ad
+    state:
+      chemistry: 10xv2
+      resolution: cr-like
   qcatch:
     label: qcatch
-    doc: Single-cell RNA-seq quality control and metric reporting using QCatch
+    doc: Single-cell quality assessment and empty droplet filtering for Alevin-fry
+      quantifications
     run:
       class: GalaxyUserTool
       id: qcatch
@@ -921,12 +946,9 @@ steps:
           '
     in:
       h5ad: simpleaf_quant/h5ad
-    out:
-      html_report: html_report
-      filtered_h5ad: filtered_h5ad
   concat_h5ad:
     label: concat_h5ad
-    doc: Concatenate per-sample AnnData objects into a unified multi-sample H5AD matrix
+    doc: Combine multiple sample AnnData H5AD files into a merged dataset
     run:
       class: GalaxyUserTool
       id: concat-h5ad
@@ -1003,9 +1025,10 @@ steps:
 
           '
     in:
-      h5ad_list: anndata_barcodes/filtered_h5ad
-    out:
-      combined_h5ad: combined_h5ad
+      h5ad_files: anndata_barcodes/filtered_h5ad
+      samplesheet: samplesheet
+    state:
+      input_type: filtered
   anndatar_convert:
     label: anndatar_convert
     doc: Convert AnnData H5AD into Seurat and SingleCellExperiment RDS formats
@@ -1099,12 +1122,9 @@ steps:
           '
     in:
       h5ad: concat_h5ad/combined_h5ad
-    out:
-      seurat_rds: seurat_rds
-      sce_rds: sce_rds
   multiqc:
     label: multiqc
-    doc: Aggregate quality metrics across tools into an interactive HTML report
+    doc: Aggregate QC metrics from FastQC and aligners into an interactive HTML report
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy4
     tool_version: 1.35+galaxy4
     tool_shed_repository:
@@ -1116,6 +1136,10 @@ steps:
       results_0|software_cond|output_0|type|input: starsolo/output_log
       results_0|software_cond|output_1|type|input: starsolo/reads_per_gene
       results_1|software_cond|output_0|input: fastqc/text_file
-    out:
-      html_report: html_report
-      stats: stats
+    state:
+      comment: ''
+      export: false
+      flat: false
+      image_content_input: null
+      png_plots: false
+      title: nf-core/scrnaseq Quality Report

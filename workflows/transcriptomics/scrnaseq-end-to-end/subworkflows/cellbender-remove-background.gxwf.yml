@@ -101,10 +101,12 @@ steps:
     - name: fpr
       type: float
       optional: true
+      value: 0.01
       label: Nominal False Positive Rate (FPR)
     - name: epochs
       type: integer
       optional: true
+      value: 150
       label: Number of Training Epochs
     outputs:
     - name: barcodes

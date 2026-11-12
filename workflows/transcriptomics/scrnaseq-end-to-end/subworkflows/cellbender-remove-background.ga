@@ -11,7 +11,7 @@
   ],
   "license": "MIT",
   "release": "0.1.0",
-  "uuid": "3f3149df-c2e9-4c9e-b69d-f085488df9b7",
+  "uuid": "3296a4e2-24e5-450f-8c6f-666d9e12cb9b",
   "creator": [
     {
       "name": "nf-core",
@@ -169,12 +169,14 @@
             "name": "fpr",
             "type": "float",
             "optional": true,
+            "value": 0.01,
             "label": "Nominal False Positive Rate (FPR)"
           },
           {
             "name": "epochs",
             "type": "integer",
             "optional": true,
+            "value": 150,
             "label": "Number of Training Epochs"
           }
         ],
